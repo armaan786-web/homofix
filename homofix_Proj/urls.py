@@ -124,11 +124,11 @@ urlpatterns = [
         name="booking_status_update",
     ),
 
-###################################
-    ####################### NEW URL ALSO HERE #########################
+########################################################## NEW URL ALSO HERE #########################
     path('api/technician/rebooking/status/update',API_Views.technicianRebookingStatusUpdated,name="technicianRebookingStatusUpdated"),
 
     ########################## END new url Manually ####################
+    path('api/save-fcm-token',API_Views.save_fcm_token,name="save_fcm_token"),
     
 ]+static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

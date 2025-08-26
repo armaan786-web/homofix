@@ -43,7 +43,7 @@ from datetime import timedelta
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework import generics
 from homofix_app.services.auto_assign import assign_employee_to_booking
-
+from utils.firebase import send_push_notification
 
 
 
@@ -655,6 +655,35 @@ class TaskViewSet(ModelViewSet):
                                 # return Response({'Error': False, 'error': 'Invoice already created'})
                     except Exception as e:
                         print(e)
+                    
+                # ---------------- Notification Block ----------------
+                try:
+                    # Technician ko notification
+                    technician = task.technician
+                   
+                    if technician and hasattr(technician, "fcm_token") and technician.fcm_token:
+                        send_push_notification(
+                            token=technician.fcm_token,
+                            title="Booking Update",
+                            body=f"Booking #{booking.id} status updated to {booking.status}",
+                            data={"booking_id": str(booking.id), "status": booking.status}
+                        )
+                        print("sendginnnnnnnnnnn success")
+
+                    # User ko notification
+                    booking_user = getattr(booking, "user", None)
+                    if booking_user and hasattr(booking_user, "fcm_token") and booking_user.fcm_token:
+                        send_push_notification(
+                            token=booking_user.fcm_token,
+                            title="Booking Update",
+                            body=f"Your booking #{booking.id} is now {booking.status}",
+                            data={"booking_id": str(booking.id), "status": booking.status}
+                        )
+                except Exception as e:
+                    print("Notification error:", e)
+
+                # --------------------------------
+
 
                 return Response({"success": True})
             except Booking.DoesNotExist:
@@ -3215,3 +3244,25 @@ def check_slot_availability(request):
         "status": "ok",
         "slots": response_slots
     })
+
+
+
+
+
+
+
+@api_view(["POST"])
+def save_fcm_token(request):
+    tech_id = request.data.get("technician_id")
+    token = request.data.get("fcm_token")
+
+    if not tech_id or not token:
+        return Response({"success": False, "message": "technician_id and fcm_token required"})
+
+    try:
+        technician = Technician.objects.get(id=tech_id)
+        technician.fcm_token = token
+        technician.save()
+        return Response({"success": True, "message": "Token saved successfully"})
+    except Technician.DoesNotExist:
+        return Response({"success": False, "message": "Technician not found"})

@@ -165,3 +165,5 @@ settings.py
 
 backup/
 test.log
+
+homofixexpert-firebase-adminsdk-fbsvc-*.json
