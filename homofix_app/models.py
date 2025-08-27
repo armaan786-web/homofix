@@ -191,6 +191,7 @@ class Technician(models.Model):
     updated_at=models.DateField(auto_now_add=True)
     joining_date = models.DateField(null=True,blank=True)
     working_pincode_areas = models.ManyToManyField(Pincode, related_name='technicians')
+    fcm_token = models.TextField(null=True, blank=True)
     objects=models.Manager()
 
 
