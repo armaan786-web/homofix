@@ -2141,6 +2141,9 @@ def cancel_booking_byadmin(request,booking_id):
         return redirect('booking_list')    
 
 
+from utils.firebase import send_push_notification
+
+
 def task_assign(request):
     if request.method == "POST":
         booking_id = request.POST.get('booking_id')
@@ -2155,6 +2158,13 @@ def task_assign(request):
         task.save()
         booking.status = "Assign"
         booking.save()
+        if technician and hasattr(technician, "fcm_token") and technician.fcm_token:
+            send_push_notification(
+                            token=technician.fcm_token,
+                            title="Booking Update",
+                            body=f"Booking #{booking.id} status updated to {booking.status}",
+                            data={"booking_id": str(booking.id), "status": booking.status}
+                        )
 
         messages.success(request,'Assign Task Successfully')
         return redirect('booking_list')
@@ -4218,3 +4228,84 @@ def delete_slot(request,id):
     messages.success(request, "Slot deleted successfully.")
     return redirect('slot')
 
+
+
+
+
+def get_pincode_by_state(request):
+    state = request.GET.get("state")
+    pincodes = []
+    if state:
+        pincodes = list(Pincode.objects.filter(state=state).values("id", "code"))
+    return JsonResponse(pincodes, safe=False)
+
+
+
+
+from homofix_app.models import SLOT_CHOICES_DICT
+from datetime import datetime, time as dt_time
+def ajax_check_slot_availability(request):
+    """
+    AJAX view to check slot availability based on:
+    - zipcode
+    - date (YYYY-MM-DD)
+    - subcategory_ids (comma-separated string of IDs)
+    """
+
+    zipcode = request.GET.get("zipcode")
+    print("zipcodee",zipcode)
+    date_str = request.GET.get("date")
+    print("date:",date_str)
+    subcategory_ids = request.GET.getlist("subcategory_ids[]")  # from jQuery AJAX
+    print("subcategory_ids",subcategory_ids)
+
+    if not zipcode or not date_str or not subcategory_ids:
+        return JsonResponse({"error": "Missing required parameters."}, status=400)
+
+    try:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+        aware_start_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.min))
+        aware_end_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.max))
+    except ValueError:
+        return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
+
+    subcategories = SubCategory.objects.filter(id__in=subcategory_ids)
+
+    universal_slot_obj = UniversalCredential.objects.first()
+    universal_limit = universal_slot_obj.universal_slot if universal_slot_obj and universal_slot_obj.universal_slot is not None else 0
+
+    response_slots = []
+
+    for slot_number in range(1, 13):
+        slots = Slot.objects.filter(
+            slot=slot_number,
+            subcategories__in=subcategories
+        ).distinct()
+
+        matching_slot = None
+        if slots.exists():
+            for slot_obj in slots:
+                if slot_obj.pincode.filter(code=int(zipcode)).exists():
+                    matching_slot = slot_obj
+                    break
+
+        if matching_slot and matching_slot.limit is not None:
+            limit = matching_slot.limit
+        else:
+            limit = universal_limit
+
+        current_count = Booking.objects.filter(
+            booking_date__range=(aware_start_dt, aware_end_dt),
+            slot=slot_number,
+            zipcode=zipcode,
+        ).count()
+
+        remaining = limit - current_count
+
+        response_slots.append({
+            "slot": slot_number,
+            "time": SLOT_CHOICES_DICT.get(slot_number, f"Slot {slot_number}"),
+            "available": remaining > 0
+        })
+
+    return JsonResponse({"slots": response_slots})

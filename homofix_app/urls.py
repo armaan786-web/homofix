@@ -245,6 +245,10 @@ urlpatterns = [
     path('Accounts/Admin/Edit/Slot/<int:id>', HodViews.edit_slot, name='edit_slot'),
     path('Accounts/Admin/Delete/Slot/<int:id>', HodViews.delete_slot, name='delete_slot'),
 
+    path("get-pincode-by-state/", HodViews.get_pincode_by_state, name="get_pincode_by_state"),
+    path('ajax/check-slot-availability/', HodViews.ajax_check_slot_availability, name='ajax_check_slot_availability'),
+    
+
 
 
     

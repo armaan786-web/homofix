@@ -407,7 +407,7 @@ SLOT_CHOICES = [
     (12, "07:00 PM - 08:00 PM"),
 ]
 
-
+SLOT_CHOICES_DICT = dict(SLOT_CHOICES)
 class Booking(models.Model):
     STATUS_CHOICES = (
         ('New', 'New'),

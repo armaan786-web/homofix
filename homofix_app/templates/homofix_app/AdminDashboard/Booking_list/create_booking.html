@@ -127,11 +127,9 @@
                            {% comment %} <input class="form-control" type="datetime-local"  id="inputDateTime" name="booking_date"> {% endcomment %}
                            <select class="single-select" name="state" id="" required>
                               <option value="" disabled selected>---SELECT---</option>
-                              {% for state in state_choices %}
-                              {% comment %} 
-                              <option value="{{state.0}}">{{i.name}}</option>
-                              {% endcomment %}
-                              <option value="{{ state.0 }}" {% if state.0 == technician.state %}selected{% endif %}>{{ state.1 }}</option>
+                              {% for state in state_choices  %}
+                              
+                              <option value="{{ state.0 }}" {% if state.0 == technician.state %}selected{% endif %}>{{ state.1}}</option>
                               {% endfor %}
                            </select>
                            {% comment %} <select class="single-select" name="state" class="form-control" required>
@@ -147,8 +145,42 @@
                         </div>
                         <div class="mb-3">
                            <label for="inputDateTime" class="form-label">Zip Code</label>
-                           <input class="form-control" type="number" name="zip_code" required>
+                           {% comment %} <input class="form-control" type="number" name="zip_code" required> {% endcomment %}
+                           <select class="single-select" name="zip_code" id="zip_code_dropdown" required>
+                              <option value="" disabled selected>---SELECT---</option>
+                           </select>
                         </div>
+
+                         <div class="mb-3">
+                           <label for="inputDateTime" class="form-label">Select Slot</label>
+                          
+                           {% comment %} <select class="single-select" name="state" id="" required>
+                              <option value="" disabled selected>---SELECT---</option>
+                              {% for slot in slot %}
+                              
+                              <option value="{{ slot.slot }}" {% if state.0 == technician.state %}selected{% endif %}>
+                                 {% if slot.slot == 1 %}08:00 AM - 09:00 AM{% endif %} 
+                                 {% if slot.slot == 2 %}09:00 AM - 10:00 AM{% endif %} 
+                                 {% if slot.slot == 3 %}10:00 AM - 11:00 AM{% endif %} 
+                                 {% if slot.slot == 4 %}11:00 AM - 12:00 PM{% endif %} 
+                                 {% if slot.slot == 5 %}12:00 PM - 01:00 PM{% endif %} 
+                                 {% if slot.slot == 6 %}01:00 PM - 02:00 PM{% endif %} 
+                                 {% if slot.slot == 7 %}02:00 PM - 03:00 PM{% endif %} 
+                                 {% if slot.slot == 8 %}03:00 PM - 04:00 PM{% endif %} 
+                                 {% if slot.slot == 9 %}04:00 PM - 05:00 PM{% endif %} 
+                                 {% if slot.slot == 10 %}05:00 PM - 06:00 PM{% endif %} 
+                                 {% if slot.slot == 11 %}06:00 PM - 07:00 PM{% endif %} 
+                                 {% if slot.slot == 12 %}07:00 PM - 08:00 PM{% endif %} 
+                              </option>
+                              {% endfor %}
+                           </select> {% endcomment %}
+                           <select class="single-select" name="slot" id="slot-dropdown" required>
+                              <option value="" disabled selected>---SELECT---</option>
+                              <!-- JS will populate -->
+                           </select>
+                           
+                        </div>
+                        
                         <div class="mb-3">
                            <label for="inputProductaddress" class="form-label">Address</label>
                            <textarea class="form-control" id="inputProductaddress" rows="3" name="address" required></textarea>
@@ -286,5 +318,72 @@
     
 </script>
 
+
+<script>
+   $(document).ready(function() {
+      $("select[name='state']").change(function() {
+         var state = $(this).val();
+         if (state) {
+            $.ajax({
+               url: "{% url 'get_pincode_by_state' %}",
+               type: "GET",
+               data: { state: state },
+               dataType: "json",
+               success: function(data) {
+                  $("#zip_code_dropdown").html('<option value="" disabled selected>---SELECT---</option>');
+                  $.each(data, function(index, item) {
+                     $("#zip_code_dropdown").append('<option value="' + item.code + '">' + item.code + '</option>');
+                  });
+               }
+            });
+         } else {
+            $("#zip_code_dropdown").html('<option value="" disabled selected>---SELECT---</option>');
+         }
+      });
+   });
+</script>
+
+
+<script>
+  $(document).ready(function () {
+    function fetchSlotAvailability() {
+        var zipcode = $("#zip_code_dropdown").val();
+        var dateVal = $("#inputDateTime").val();
+        var subcategory_ids = $("#select_subcategory").val() || []; // multiple select ke liye array
+
+        if (zipcode && dateVal && subcategory_ids.length > 0) {
+            var date = dateVal.split("T")[0];  // safe split YYYY-MM-DD
+
+            $.ajax({
+                url: "{% url 'ajax_check_slot_availability' %}",
+                type: "GET",
+                data: {
+                    zipcode: zipcode,
+                    date: date,
+                    "subcategory_ids[]": subcategory_ids   // 👈 array bhejne ka sahi tarika
+                },
+                traditional: true,
+                dataType: "json",
+                success: function (data) {
+                    var $slotSelect = $("#slot-dropdown");
+                    $slotSelect.html('<option disabled selected>---SELECT---</option>');
+
+                    $.each(data.slots, function (index, slot) {
+                        var label = slot.time;
+                        var disabled = slot.available ? "" : "disabled";
+                        var note = slot.available ? "" : " (Not Available)";
+                        $slotSelect.append(
+                            `<option value="${slot.slot}" ${disabled}>${label}${note}</option>`
+                        );
+                    });
+                }
+            });
+        }
+    }
+
+    $("#zip_code_dropdown, #inputDateTime, #select_subcategory").on("change", fetchSlotAvailability);
+});
+
+</script>
 
 {% endblock main-content %}
