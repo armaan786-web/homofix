@@ -550,12 +550,14 @@ def technician_add_category(request):
 
 
 
+
 def technician_edit_profile(request,id):
     new_expert_count = Technician.objects.filter(status="New").count()
     booking_count = Booking.objects.filter(status = "New").count()
     technician = Technician.objects.get(id=id)
     state_choices = STATE_CHOICES
     sub_cat = SubCategory.objects.all()
+    unique_states = Pincode.objects.values_list('state', flat=True).distinct()
     average_rating = technician.feedback_set.aggregate(Avg('rating'))['rating__avg']
     formatted_average_rating = "{:.2f}".format(average_rating) if average_rating else None
     
@@ -566,6 +568,10 @@ def technician_edit_profile(request,id):
     # print("subcategory",subcategories)
     rebooking_count = Rebooking.objects.all().count()
     customer_count = Customer.objects.all().count()
+
+    selected_state = technician.working_pincode_areas.first().state if technician.working_pincode_areas.exists() else None
+    state_pincodes = Pincode.objects.filter(state=selected_state) if selected_state else []
+
    
     if request.method == "POST":
         profile_pic = request.FILES.get('profile_pic')
@@ -590,7 +596,9 @@ def technician_edit_profile(request,id):
         city = request.POST.get('city')
         status = request.POST.get('status')   
         date_of_joining = request.POST.get('date_of_joining')   
-        application_form = request.FILES.get('application_form')   
+        application_form = request.FILES.get('application_form')  
+
+        pincode = request.POST.getlist('pincode') 
 
         technician.admin.username = username
         technician.admin.first_name = first_name
@@ -624,6 +632,7 @@ def technician_edit_profile(request,id):
         technician.serving_area=serving_area
         technician.highest_qualification=highest_qualification
         technician.state=state
+        technician.working_pincode_areas.set(pincode)
         technician.subcategories.set(subcategory_id)
        
         if city:
@@ -648,7 +657,7 @@ def technician_edit_profile(request,id):
         return redirect('technician_edit_profile',id=technician.id)
         # return render(request,'homofix_app/AdminDashboard/Technician/technician_profile.html',{'technician':technician,'category':category})
         # return redirect('technician_edit_profile',{'technician_id': technician_id})
-    return render(request,'homofix_app/AdminDashboard/Technician/technician_profile.html',{'technician':technician,'category':category,'subcategories': subcategories,'state_choices':state_choices,'new_expert_count':new_expert_count,'booking_count':booking_count,'rebooking_count':rebooking_count,'customer_count':customer_count,'average_rating':formatted_average_rating })
+    return render(request,'homofix_app/AdminDashboard/Technician/technician_profile.html',{'technician':technician,'category':category,'subcategories': subcategories,'state_choices':state_choices,'new_expert_count':new_expert_count,'booking_count':booking_count,'rebooking_count':rebooking_count,'customer_count':customer_count,'average_rating':formatted_average_rating,'unique_states': unique_states,'selected_pincode_ids': technician.working_pincode_areas.values_list('id', flat=True),'state_pincodes': state_pincodes})
 
 
 def edit_technician(request):

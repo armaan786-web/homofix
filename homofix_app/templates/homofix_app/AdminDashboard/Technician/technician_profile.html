@@ -1,6 +1,7 @@
 {% extends 'homofix_app/Base/base.html' %}
 {% load static %}
 {% block main-content %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 
 <div class="page-content">
     <!--breadcrumb-->
@@ -343,6 +344,37 @@
                                     <input type="text" class="form-control" value="{{technician.serving_area}}" name="serving_area">
                                 </div>
                             </div>
+                            <div class="row mb-3">
+                                <div class="col-sm-3">
+                                    <h6 class="mb-0">working State</h6>
+                                </div>
+                                <div class="col-sm-9">
+                                    {% comment %} <input type="text" class="form-control" value="{{technician.serving_area}}" name="serving_area"> {% endcomment %}
+                                    <select name="state" id="stateSelect" class="form-control">
+                                        <option value="">-- Select State --</option>
+                                        {% for state in unique_states %}
+                                            <option value="{{ state }}">{{ state }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-sm-3">
+                                    <h6 class="mb-0">working pincode</h6>
+                                </div>
+                                <div class="col-sm-9">
+                                    {% comment %} <input type="text" class="form-control" value="{{technician.serving_area}}" name="serving_area"> {% endcomment %}
+                                    <select class="single-select" name="pincode" id="pincode-select" multiple>
+                                       <option class="text-black" value="" disabled> --Select--</option>
+                                       {% for pincode in state_pincodes %}
+                                          <option class="text-black" value="{{ pincode.id }}"
+                                                {% if pincode.id in selected_pincode_ids %}selected{% endif %}>
+                                                {{ pincode.code }}
+                                          </option>
+                                       {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
 
                             
                             <div class="row mb-3">
@@ -434,5 +466,44 @@
         });
     });
  </script>
+
+
+<script>
+    console.log("Slot modal script loaded...");
+
+    $(document).on('change', '#stateSelect', function () {
+        console.log("armaanuuuuu")
+        var selectedState = $(this).val();
+        $('#pincode-select').empty();
+
+        if (selectedState) {
+            $.ajax({
+                url: "{% url 'get_pincodes_by_state' %}",
+                data: {
+                    'state': selectedState
+                },
+                dataType: 'json',
+                success: function (data) {
+    var pincodes = data.pincodes;
+    $('#pincode-select').empty(); // Clear previous options
+    $('#pincode-select').append('<option value="" selected disabled> --Select--</option>');
+    
+    if (pincodes.length > 0) {
+        for (var i = 0; i < pincodes.length; i++) {
+            $('#pincode-select').append(
+                '<option value="' + pincodes[i].id + '">' + pincodes[i].code + '</option>'
+            );
+        }
+    } else {
+        $('#pincode-select').append('<option value="">No pincodes found</option>');
+    }
+}
+
+            });
+        }
+    });
+</script>
+
+
  
 {% endblock main-content %}
