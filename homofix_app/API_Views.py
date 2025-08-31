@@ -1656,12 +1656,26 @@ class TechnicianAllLocationViewSet(ModelViewSet):
 class TechnicianOnlineViewSet(viewsets.ViewSet):
     
     def list(self, request):
+        technician_id = request.query_params.get('technician_id')
+        if technician_id:
+            showonline_objs = showonline.objects.filter(technician_id=technician_id).order_by('-date')
+            if showonline_objs.exists():
+                serializer = TechnicianOnlineSerializer(showonline_objs.first())
+                return Response({
+                    'status': True,
+                    'message': 'Technician online status fetched',
+                    'data': serializer.data
+                })
+            return Response({
+                'status': False,
+                'message': f'No online status found for technician {technician_id}',
+            })
         showonline_objs = showonline.objects.all()
-        serializer=TechnicianOnlineSerializer(showonline_objs,many=True)
+        serializer = TechnicianOnlineSerializer(showonline_objs, many=True)
         return Response({
-            'status':True,
-            'message':'Show Online Offline fetched',
-            'data':serializer.data
+            'status': True,
+            'message': 'Show Online Offline fetched',
+            'data': serializer.data
         })
 
     def update(self, request, pk=None):

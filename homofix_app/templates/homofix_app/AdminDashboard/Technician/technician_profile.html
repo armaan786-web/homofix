@@ -373,7 +373,10 @@
                                           </option>
                                        {% endfor %}
                                     </select>
+                                   
                                 </div>
+
+                                
                             </div>
 
                             
@@ -393,6 +396,49 @@
                                       </select>
                                     {% comment %} <input type="text" class="form-control" value="{{technician.status}}" name="status"> {% endcomment %}
                                     
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-sm-3">
+                                    <h6 class="mb-0">Working Status</h6>
+                                </div>
+                                <div class="col-sm-9">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="onlineStatus" {% if technician.showonline_set.last.online %}checked{% endif %} name="onlinstatus" value="1">
+                                        <label class="form-check-label" for="onlineStatus">
+                                            <span id="statusText" class="badge {% if technician.showonline_set.last.online %}bg-success{% else %}bg-danger{% endif %}">
+                                                {% if technician.showonline_set.last.online %}Online{% else %}Offline{% endif %}
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <div id="statusNotification" class="mt-2" style="display: none;">
+                                        <small class="text-muted">Status updated successfully!</small>
+                                    </div>
+                                    <script>
+                                        document.getElementById('onlineStatus').addEventListener('change', function() {
+                                            var statusText = document.getElementById('statusText');
+                                            var notification = document.getElementById('statusNotification');
+                                            
+                                            if (this.checked) {
+                                                statusText.textContent = 'Online';
+                                                statusText.className = 'badge bg-success';
+                                            } else {
+                                                statusText.textContent = 'Offline';
+                                                statusText.className = 'badge bg-danger';
+                                            }
+                                            
+                                            // Show notification
+                                            notification.style.display = 'block';
+                                            // Hide notification after 3 seconds
+                                            setTimeout(function() {
+                                                notification.style.display = 'none';
+                                            }, 3000);
+                                                statusText.textContent = 'Offline';
+                                                statusText.className = 'text-light';
+                                            }
+                                        });
+                                    </script>
                                 </div>
                             </div>
 
@@ -472,9 +518,14 @@
     console.log("Slot modal script loaded...");
 
     $(document).on('change', '#stateSelect', function () {
-        console.log("armaanuuuuu")
+        console.log("State changed");
         var selectedState = $(this).val();
-        $('#pincode-select').empty();
+        var selectedPincodes = [];
+        
+        // Store currently selected pincodes before clearing
+        $('#pincode-select option:selected').each(function() {
+            selectedPincodes.push($(this).val());
+        });
 
         if (selectedState) {
             $.ajax({
@@ -484,21 +535,23 @@
                 },
                 dataType: 'json',
                 success: function (data) {
-    var pincodes = data.pincodes;
-    $('#pincode-select').empty(); // Clear previous options
-    $('#pincode-select').append('<option value="" selected disabled> --Select--</option>');
-    
-    if (pincodes.length > 0) {
-        for (var i = 0; i < pincodes.length; i++) {
-            $('#pincode-select').append(
-                '<option value="' + pincodes[i].id + '">' + pincodes[i].code + '</option>'
-            );
-        }
-    } else {
-        $('#pincode-select').append('<option value="">No pincodes found</option>');
-    }
-}
-
+                    var pincodes = data.pincodes;
+                    $('#pincode-select').empty(); // Clear previous options
+                    $('#pincode-select').append('<option value="" disabled> --Select--</option>');
+                    
+                    if (pincodes.length > 0) {
+                        for (var i = 0; i < pincodes.length; i++) {
+                            // Check if this pincode was previously selected
+                            var isSelected = selectedPincodes.includes(pincodes[i].id.toString()) ? 'selected' : '';
+                            
+                            $('#pincode-select').append(
+                                '<option value="' + pincodes[i].id + '" ' + isSelected + '>' + pincodes[i].code + '</option>'
+                            );
+                        }
+                    } else {
+                        $('#pincode-select').append('<option value="">No pincodes found</option>');
+                    }
+                }
             });
         }
     });

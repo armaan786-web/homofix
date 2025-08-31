@@ -114,8 +114,8 @@
                         
                         {% comment %} <input type="text" id="total-amount"> {% endcomment %}
                         <div class="mb-3">
-                           <label for="inputDateTime" class="form-label">Select Date & Time</label>
-                           <input class="form-control" type="datetime-local"  id="inputDateTime" name="booking_date" required>
+                           <label for="inputDateTime" class="form-label">Select Date</label>
+                           <input class="form-control" type="date"  id="inputDateTime" name="booking_date" required>
                         </div>
                         <div class="mb-3">
                            <label for="inputCity" class="form-label">City</label>
@@ -127,9 +127,9 @@
                            {% comment %} <input class="form-control" type="datetime-local"  id="inputDateTime" name="booking_date"> {% endcomment %}
                            <select class="single-select" name="state" id="" required>
                               <option value="" disabled selected>---SELECT---</option>
-                              {% for state in state_choices  %}
+                              {% for state in states  %}
                               
-                              <option value="{{ state.0 }}" {% if state.0 == technician.state %}selected{% endif %}>{{ state.1}}</option>
+                              <option value="{{ state }}">{{ state }}</option>
                               {% endfor %}
                            </select>
                            {% comment %} <select class="single-select" name="state" class="form-control" required>

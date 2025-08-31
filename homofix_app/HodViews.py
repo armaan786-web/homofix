@@ -1,6 +1,6 @@
 from django.shortcuts import render,redirect,HttpResponse,get_object_or_404
 # from django.contrib.auth.decorators import login_required
-from .models import CustomUser,Category,Technician,Product,SpareParts,Support,FAQ,Booking,Task,STATE_CHOICES,SubCategory,Rebooking,ContactUs,JobEnquiry,HodSharePercentage,Customer,Share,Payment,Addon,Wallet,WalletHistory,TechnicianLocation,AdminHOD,AllTechnicianLocation,BookingProduct,WithdrawRequest,RechargeHistory,Attendance,Coupon,Kyc,Blog,Offer,MostViewed,HomePageService,Carrer,ApplicantCarrer,LegalPage,Invoice,Payment,Settlement,feedback,Pincode,UniversalCredential,AutoAssignSetting,SLOT_CHOICES,Slot
+from .models import CustomUser,Category,Technician,Product,SpareParts,Support,FAQ,Booking,Task,STATE_CHOICES,SubCategory,Rebooking,ContactUs,JobEnquiry,HodSharePercentage,Customer,Share,Payment,Addon,Wallet,WalletHistory,TechnicianLocation,AdminHOD,AllTechnicianLocation,BookingProduct,WithdrawRequest,RechargeHistory,Attendance,Coupon,Kyc,Blog,Offer,MostViewed,HomePageService,Carrer,ApplicantCarrer,LegalPage,Invoice,Payment,Settlement,feedback,Pincode,UniversalCredential,AutoAssignSetting,SLOT_CHOICES,Slot,showonline
 from django.http import JsonResponse,HttpResponseRedirect
 from django.contrib import messages
 from django.urls import reverse
@@ -598,7 +598,19 @@ def technician_edit_profile(request,id):
         date_of_joining = request.POST.get('date_of_joining')   
         application_form = request.FILES.get('application_form')  
 
-        pincode = request.POST.getlist('pincode') 
+        pincode = request.POST.getlist('pincode')
+        onlinstatus = request.POST.getlist('onlinstatus')
+        
+        try:
+            onlinestatus_obj = showonline.objects.get(technician_id=technician)
+        except showonline.DoesNotExist:
+            # If showonline object doesn't exist, create a new one
+            onlinestatus_obj = showonline.objects.create(technician_id=technician)
+        
+        # Update online status based on checkbox value
+        onlinestatus_obj.online = bool(onlinstatus)
+        onlinestatus_obj.save()
+
 
         technician.admin.username = username
         technician.admin.first_name = first_name
@@ -2100,7 +2112,8 @@ def admin_List_of_expert(request,id):
     booking_subcategories = booking.products.values_list("subcategory", flat=True).distinct()
     
    
-    expert = Technician.objects.filter(city=booking.customer.city, subcategories__in=booking_subcategories).distinct()
+    # expert = Technician.objects.filter(city=booking.customer.city, subcategories__in=booking_subcategories).distinct()
+    expert = Technician.objects.filter(working_pincode_areas__code=booking.zipcode, subcategories__in=booking_subcategories).distinct()
     tasks = Task.objects.filter(booking=booking)
     
    
