@@ -36,6 +36,9 @@ from django.db.models import Avg
 import requests
 from django.utils import timezone
 
+from django.http import JsonResponse
+from utils.firebase import send_push_notification
+
 # def all_location(request):
 #     all_location = AllTechnicianLocation.objects.all()
    
@@ -547,7 +550,6 @@ def technician_add_category(request):
         category.save()
         messages.success(request,f'{category_name} Add Successfully')
         return redirect('technician')
-
 
 
 
@@ -2017,6 +2019,7 @@ def admin_booking(request):
         city = request.POST.get('city')
         area = request.POST.get('area')
         description = request.POST.get('description')
+        slot = request.POST.get('slot')
         total_amount = int(request.POST.get('total_amount'))
         print("sss",total_amount)
         
@@ -2049,6 +2052,7 @@ def admin_booking(request):
             state=state,
             area=area,
             zipcode=zip_code,
+            slot = slot
            
         )
 
@@ -2093,12 +2097,19 @@ def admin_booking(request):
 
         messages.success(request, 'Booking created successfully.')
         return redirect('booking_list')
+    
+    slot = Slot.objects.all()
+    pincode = Pincode.objects.all()
+    states = Pincode.objects.values_list("state", flat=True).distinct()
 
     context = {
         'prod': prod,
         'state_choices':state_choices,
         'category':category,
-        'support':support
+        'support':support,
+        'slot':slot,
+        'pincode':pincode,
+        'states':states
     }
     return render(request, 'homofix_app/AdminDashboard/Booking_list/create_booking.html', context)
 
@@ -2112,7 +2123,6 @@ def admin_List_of_expert(request,id):
     booking_subcategories = booking.products.values_list("subcategory", flat=True).distinct()
     
    
-    # expert = Technician.objects.filter(city=booking.customer.city, subcategories__in=booking_subcategories).distinct()
     expert = Technician.objects.filter(working_pincode_areas__code=booking.zipcode, subcategories__in=booking_subcategories).distinct()
     tasks = Task.objects.filter(booking=booking)
     
@@ -2164,7 +2174,6 @@ def cancel_booking_byadmin(request,booking_id):
 
 
 from utils.firebase import send_push_notification
-
 
 def task_assign(request):
     if request.method == "POST":
@@ -4253,6 +4262,112 @@ def delete_slot(request,id):
 
 
 
+# ------------------------- upload csv file ------------------- 
+
+# import pandas as pd
+from django.contrib import messages
+from django.shortcuts import redirect
+from .models import Pincode
+
+# def upload_pincode_csv(request):
+#     if request.method == "POST" and request.FILES.get("csv_file"):
+#         csv_file = request.FILES["csv_file"]
+#         try:
+#             df = pd.read_csv(csv_file)
+#             added = 0
+#             skipped = 0
+
+#             for _, row in df.iterrows():
+#                 state = row.get("state")
+#                 code = row.get("pincode")
+
+#                 if state and code:
+#                     # check for duplicate entry
+#                     if not Pincode.objects.filter(state=state, code=code).exists():
+#                         Pincode.objects.create(state=state, code=code)
+#                         added += 1
+#                     else:
+#                         skipped += 1
+
+#             messages.success(request, f"Pincode CSV uploaded successfully. Added: {added}, Skipped (duplicates): {skipped}")
+#         except Exception as e:
+#             messages.error(request, f"Error importing CSV: {e}")
+#     else:
+#         messages.error(request, "Please upload a valid CSV file.")
+
+#     return redirect('pincode')  # 🔁 replace with your actual URL name
+
+
+
+import pandas as pd
+import os
+
+def upload_pincode_csv(request):
+    if request.method == "POST" and request.FILES.get("csv_file"):
+        csv_file = request.FILES["csv_file"]
+        file_name = csv_file.name
+
+        try:
+            # Check file extension
+            if file_name.endswith(".csv"):
+                df = pd.read_csv(csv_file)
+            elif file_name.endswith((".xls", ".xlsx")):
+                df = pd.read_excel(csv_file)
+            else:
+                messages.error(request, "Unsupported file format. Please upload a CSV or Excel file.")
+                return redirect('pincode')
+
+            added = 0
+            skipped = 0
+
+            for _, row in df.iterrows():
+                state = row.get("state").strip().title()
+                code = row.get("pincode")
+
+                if state and code:
+                    if not Pincode.objects.filter(state=state, code=code).exists():
+                        Pincode.objects.create(state=state, code=code)
+                        added += 1
+                    else:
+                        skipped += 1
+
+            messages.success(request, f"File uploaded. Added: {added}, Skipped (duplicates): {skipped}")
+        except Exception as e:
+            messages.error(request, f"Error importing file: {e}")
+    else:
+        messages.error(request, "Please upload a valid CSV or Excel file.")
+
+    return redirect('pincode')
+
+
+
+
+# views.py
+
+def test_notification_view(request):
+    # Flutter app se mila hua FCM token
+    fcm_token = 'eQUf_sgfGkJ5t56SzVLMbA:APA91bEkiP9for4msQZLSxRy5msdxJD2rvE8GD9ItSq0hEOYKNXeuqVlubt2Txf7fb3uri5s46ZGnlEd7EK8IhSJ8yI1yQ9AVUbP5YDVv5QAbWnTptKhUPY'
+    
+    # Notification content
+    title = 'Test Notification'
+    body = 'Yeh ek test message hai Firebase se.'
+
+    # Optional data payload (key-value string map)
+    extra_data = {
+        'key1': 'value1',
+        'key2': 'value2'
+    }
+
+    # Send notification
+    result = send_push_notification(fcm_token, title, body, data=extra_data)
+
+    return JsonResponse(result)
+
+
+
+
+# views.py
+
 
 def get_pincode_by_state(request):
     state = request.GET.get("state")
@@ -4263,9 +4378,19 @@ def get_pincode_by_state(request):
 
 
 
+# views.py
 
-from homofix_app.models import SLOT_CHOICES_DICT
+from django.http import JsonResponse
+from rest_framework.decorators import api_view
 from datetime import datetime, time as dt_time
+from django.utils import timezone
+from .models import Slot, Booking, SubCategory, Pincode, UniversalCredential
+# from homofix_app.choices import SLOT_CHOICES_DICT  # Adjust import as needed
+from homofix_app.models import SLOT_CHOICES_DICT
+
+
+
+@api_view(['GET'])
 def ajax_check_slot_availability(request):
     """
     AJAX view to check slot availability based on:
