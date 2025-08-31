@@ -2080,6 +2080,11 @@ def admin_booking(request):
             # total_price = sum(price_list)
             # booking.total_price = total_price
             booking.save()
+        
+        # Auto assign technician using round-robin logic
+        from homofix_app.services.auto_assign import assign_employee_to_booking
+        assign_employee_to_booking(booking)
+        
         url = "http://sms.webtextsolution.com/sms-panel/api/http/index.php"
         payload = {
             "username": "Homofix",
@@ -2112,7 +2117,6 @@ def admin_booking(request):
         'states':states
     }
     return render(request, 'homofix_app/AdminDashboard/Booking_list/create_booking.html', context)
-
 
 
 def admin_List_of_expert(request,id):
