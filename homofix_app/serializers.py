@@ -921,7 +921,7 @@ class CustomerBookingProductDetailsSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Product
-        fields = ['id', 'name', 'price','dis_amt','selling_price']  # Add the desired fields from the Product model
+        fields = ['id', 'name', 'price','dis_amt','selling_price','product_pic']  # Add the desired fields from the Product model
     
    
 
