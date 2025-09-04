@@ -238,7 +238,7 @@ urlpatterns = [
 
     
     ##########################  Slot ##################################
-
+    path("upload-pincode-csv/", HodViews.upload_pincode_csv, name="upload_pincode_csv"),
     path('Accounts/Admin/Slot',HodViews.slot,name="slot"),
     path('Accounts/Admin/Add/Slot',HodViews.add_slot,name="add_slot"),
     path('get-pincodes/', HodViews.get_pincodes_by_state, name='get_pincodes_by_state'),
