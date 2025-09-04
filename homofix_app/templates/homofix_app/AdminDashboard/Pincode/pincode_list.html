@@ -27,7 +27,18 @@
     <h6 class="mb-0 text-uppercase">List of Pincode</h6>
     <hr>
 	{% include 'homofix_app/Base/messages.html' %}
-	<div class="ms-auto mt-2 mb-2" data-bs-toggle="modal" data-bs-target="#exampleVerticallycenteredModal"><a href="javascript:;" class="btn btn-light  mt-2 mt-lg-0"><i class="bx bxs-plus-square" ></i>New Pincode</a></div>
+	{% comment %} <div class="ms-auto mt-2 mb-2" data-bs-toggle="modal" data-bs-target="#exampleVerticallycenteredModal"><a href="javascript:;" class="btn btn-light  mt-2 mt-lg-0"><i class="bx bxs-plus-square" ></i>New Pincode</a></div> {% endcomment %}
+    <div class="ms-auto mt-2 mb-2">
+        <a href="javascript:;" class="btn btn-light  mt-2 mt-lg-0" data-bs-toggle="modal" data-bs-target="#exampleVerticallycenteredModal"><i class="bx bxs-plus-square" ></i>New Pincode</a>
+        
+        <form action="{% url 'upload_pincode_csv' %}" method="post" enctype="multipart/form-data" class="d-flex gap-2 mt-3">
+            {% csrf_token %}
+            <input type="file" name="csv_file" accept=".csv" required class="form-control">
+            <button type="submit" class="btn btn-primary">Upload CSV</button>
+        </form>
+
+
+    </div>
     <div class="card">
         
         <div class="card-body">
