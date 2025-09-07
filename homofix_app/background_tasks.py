@@ -6,9 +6,9 @@ from .models import Task, Wallet, WalletHistory
 def check_incomplete_bookings():
     # Get all tasks that are more than 24 hours old
     # twenty_four_hours_ago = timezone.now() - timedelta(hours=24)
-    twenty_four_hours_ago = timezone.now() - timedelta(minutes=5)
+    twenty_four_hours_ago = timezone.now() - timedelta(hours=48)
     incomplete_tasks = Task.objects.filter(
-        created_at__lte=twenty_four_hours_ago,
+        booking__booking_date__lte=twenty_four_hours_ago,
         technician__isnull=False
     )
 
