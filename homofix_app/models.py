@@ -739,7 +739,7 @@ class WalletHistory(models.Model):
     type = models.CharField(max_length=10, choices=TYPE_CHOICES)
     # amount = models.IntegerField()
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    description = models.CharField(max_length=100)
+    description = models.CharField(max_length=255)
     date = models.DateField(auto_now_add=True, null=True, blank=True)
 
     def __str__(self):
