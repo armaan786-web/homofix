@@ -2119,6 +2119,7 @@ def admin_booking(request):
     return render(request, 'homofix_app/AdminDashboard/Booking_list/create_booking.html', context)
 
 
+
 def admin_List_of_expert(request,id):
     # user = request.user
     # support = Support.objects.get(admin=user)  
@@ -2147,18 +2148,54 @@ def admin_List_of_expert(request,id):
 
 def admin_reschedule(request):
     if request.method == "POST":
-
-        booking_id=request.POST.get('booking_id')
+        booking_id = request.POST.get('booking_id')
         booking_date_str = request.POST.get('booking_date')
-        booking_date = make_aware(datetime.fromisoformat(booking_date_str))
-        print("booking date",booking_date)
-        booking = Booking.objects.get(id=booking_id)
-        booking.booking_date = booking_date
-        booking.save()
-        messages.success(request,"Your order reschedule success")
-
-       
-
+        slot = request.POST.get('slot')
+        
+        # Convert date string to datetime object
+        try:
+            booking_date = datetime.strptime(booking_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Invalid date format")
+            return redirect('booking_list')
+        
+        try:
+            booking = Booking.objects.get(id=booking_id)
+            
+            # Get the time from the slot
+            if slot:
+                slot_int = int(slot)
+                slot_time_str = dict(SLOT_CHOICES).get(slot_int, "")
+                if slot_time_str:
+                    # Extract start time from slot (e.g., "08:00 AM - 09:00 AM" -> "08:00 AM")
+                    start_time_str = slot_time_str.split(' - ')[0]
+                    
+                    # Parse the time
+                    try:
+                        start_time = datetime.strptime(start_time_str, '%I:%M %p').time()
+                        # Combine date and time
+                        booking_datetime = datetime.combine(booking_date, start_time)
+                        booking_datetime = make_aware(booking_datetime)
+                        
+                        # Update booking
+                        booking.booking_date = booking_datetime
+                        booking.slot = slot_int
+                        booking.save()
+                        
+                        messages.success(request, "Your order reschedule success")
+                    except ValueError:
+                        messages.error(request, "Invalid time format in slot")
+                        return redirect('booking_list')
+                else:
+                    messages.error(request, "Invalid slot selected")
+                    return redirect('booking_list')
+            else:
+                messages.error(request, "No slot selected")
+                return redirect('booking_list')
+                
+        except Booking.DoesNotExist:
+            messages.error(request, "Booking not found")
+            
         return redirect('booking_list')
 
 
@@ -2175,6 +2212,72 @@ def cancel_booking_byadmin(request,booking_id):
         booking.save()
         messages.success(request, 'Booking has been cancelled.')
         return redirect('booking_list')    
+
+
+def get_available_slots(request):
+    from django.http import JsonResponse
+    from datetime import time as dt_time
+    
+    date_str = request.GET.get('date')
+    pincode = request.GET.get('pincode')
+    
+    if not date_str:
+        return JsonResponse({'error': 'Date is required'}, status=400)
+    
+    try:
+        # Convert date string to date object
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        aware_start_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.min))
+        aware_end_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.max))
+        
+        # Get universal slot limit
+        universal_slot_obj = UniversalCredential.objects.first()
+        universal_limit = universal_slot_obj.universal_slot if universal_slot_obj and universal_slot_obj.universal_slot is not None else 0
+        
+        response_slots = []
+        
+        # Generate data for all 12 slots
+        for slot_number in range(1, 13):
+            # Try to find slot configuration for this slot number
+            slots = Slot.objects.filter(slot=slot_number)
+            
+            # If pincode is provided, check for matching slot
+            matching_slot = None
+            if pincode and slots.exists():
+                for slot_obj in slots:
+                    if slot_obj.pincode.filter(code=int(pincode)).exists():
+                        matching_slot = slot_obj
+                        break
+            
+            # Determine slot limit
+            if matching_slot and matching_slot.limit is not None:
+                limit = matching_slot.limit
+            else:
+                limit = universal_limit
+            
+            # Calculate current bookings for this slot
+            current_count = Booking.objects.filter(
+                booking_date__range=(aware_start_dt, aware_end_dt),
+                slot=slot_number,
+                zipcode=pincode,
+            ).count()
+            
+            remaining = limit - current_count
+            
+            # Add slot to response with availability info
+            response_slots.append({
+                "id": slot_number,
+                "display": SLOT_CHOICES_DICT.get(slot_number, f"Slot {slot_number}"),
+                "available": remaining > 0,
+                "remaining": remaining if remaining > 0 else 0
+            })
+        
+        return JsonResponse({'slots': response_slots})
+    
+    except ValueError:
+        return JsonResponse({'error': 'Invalid date format'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 from utils.firebase import send_push_notification

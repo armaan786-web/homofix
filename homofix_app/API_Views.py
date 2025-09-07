@@ -1354,9 +1354,59 @@ def RebookingStatusUpdated(request):
 @permission_classes([IsAuthenticated])
 def create_booking(request):
    
-    data = request.data
+    data = request.data.copy()
     booking_products_data = data.pop('booking_products', [])
     
+    # अगर स्लॉट नहीं दिया गया है तो booking_date के आधार पर स्लॉट निर्धारित करें
+    if 'slot' not in data or not data['slot']:
+        if 'booking_date' in data and data['booking_date']:
+            try:
+                # booking_date को datetime में कन्वर्ट करें
+                booking_datetime = datetime.strptime(data['booking_date'], '%Y-%m-%dT%H:%M:%S.%fZ')
+            except ValueError:
+                try:
+                    # अगर पहला फॉर्मेट काम नहीं करता, तो दूसरा फॉर्मेट आज़माएं
+                    booking_datetime = datetime.strptime(data['booking_date'], '%Y-%m-%dT%H:%M:%S')
+                except ValueError:
+                    # अगर फिर भी काम नहीं करता, तो अन्य फॉर्मेट आज़माएं
+                    try:
+                        booking_datetime = datetime.fromisoformat(data['booking_date'].replace('Z', '+00:00'))
+                    except ValueError:
+                        # अगर कोई भी फॉर्मेट काम नहीं करता, तो एरर रिटर्न करें
+                        return Response({
+                            'status': 'error',
+                            'message': 'Invalid booking_date format',
+                        }, status=status.HTTP_400_BAD_REQUEST)
+            
+            booking_time = booking_datetime.time()
+            
+            # समय के आधार पर स्लॉट निर्धारित करें
+            if booking_time >= datetime.strptime('08:00', '%H:%M').time() and booking_time < datetime.strptime('09:00', '%H:%M').time():
+                data['slot'] = 1  # 08:00-09:00 AM
+            elif booking_time >= datetime.strptime('09:00', '%H:%M').time() and booking_time < datetime.strptime('10:00', '%H:%M').time():
+                data['slot'] = 2  # 09:00-10:00 AM
+            elif booking_time >= datetime.strptime('10:00', '%H:%M').time() and booking_time < datetime.strptime('11:00', '%H:%M').time():
+                data['slot'] = 3  # 10:00-11:00 AM
+            elif booking_time >= datetime.strptime('11:00', '%H:%M').time() and booking_time < datetime.strptime('12:00', '%H:%M').time():
+                data['slot'] = 4  # 11:00-12:00 PM
+            elif booking_time >= datetime.strptime('12:00', '%H:%M').time() and booking_time < datetime.strptime('13:00', '%H:%M').time():
+                data['slot'] = 5  # 12:00-01:00 PM
+            elif booking_time >= datetime.strptime('13:00', '%H:%M').time() and booking_time < datetime.strptime('14:00', '%H:%M').time():
+                data['slot'] = 6  # 01:00-02:00 PM
+            elif booking_time >= datetime.strptime('14:00', '%H:%M').time() and booking_time < datetime.strptime('15:00', '%H:%M').time():
+                data['slot'] = 7  # 02:00-03:00 PM
+            elif booking_time >= datetime.strptime('15:00', '%H:%M').time() and booking_time < datetime.strptime('16:00', '%H:%M').time():
+                data['slot'] = 8  # 03:00-04:00 PM
+            elif booking_time >= datetime.strptime('16:00', '%H:%M').time() and booking_time < datetime.strptime('17:00', '%H:%M').time():
+                data['slot'] = 9  # 04:00-05:00 PM
+            elif booking_time >= datetime.strptime('17:00', '%H:%M').time() and booking_time < datetime.strptime('18:00', '%H:%M').time():
+                data['slot'] = 10  # 05:00-06:00 PM
+            elif booking_time >= datetime.strptime('18:00', '%H:%M').time() and booking_time < datetime.strptime('19:00', '%H:%M').time():
+                data['slot'] = 11  # 06:00-07:00 PM
+            elif booking_time >= datetime.strptime('19:00', '%H:%M').time() and booking_time < datetime.strptime('20:00', '%H:%M').time():
+                data['slot'] = 12  # 07:00-08:00 PM
+            elif booking_time >= datetime.strptime('20:00', '%H:%M').time():
+                data['slot'] = 12  # रात 8 बजे के बाद सभी बुकिंग को अंतिम स्लॉट में डालें
     
     serializer = BkingSerializer(data=data)
     

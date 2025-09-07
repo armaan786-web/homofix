@@ -351,37 +351,53 @@
         var dateVal = $("#inputDateTime").val();
         var subcategory_ids = $("#select_subcategory").val() || []; // multiple select ke liye array
 
-        if (zipcode && dateVal && subcategory_ids.length > 0) {
+        if (zipcode && dateVal) {
             var date = dateVal.split("T")[0];  // safe split YYYY-MM-DD
-
+            
+            // Show loading indicator
+            var $slotSelect = $("#slot-dropdown");
+            $slotSelect.html('<option disabled selected>---SELECT---</option>');
+            $slotSelect.append('<option value="" disabled>Loading slots...</option>');
+            
+            // Use get_available_slots endpoint to get all slots with availability
             $.ajax({
-                url: "{% url 'ajax_check_slot_availability' %}",
+                url: `/Accounts/Admin/get_available_slots?date=${date}&pincode=${zipcode}`,
                 type: "GET",
-                data: {
-                    zipcode: zipcode,
-                    date: date,
-                    "subcategory_ids[]": subcategory_ids   // 👈 array bhejne ka sahi tarika
-                },
-                traditional: true,
                 dataType: "json",
                 success: function (data) {
-                    var $slotSelect = $("#slot-dropdown");
+                    // Remove loading indicator
                     $slotSelect.html('<option disabled selected>---SELECT---</option>');
-
-                    $.each(data.slots, function (index, slot) {
-                        var label = slot.time;
-                        var disabled = slot.available ? "" : "disabled";
-                        var note = slot.available ? "" : " (Not Available)";
-                        $slotSelect.append(
-                            `<option value="${slot.slot}" ${disabled}>${label}${note}</option>`
-                        );
-                    });
+                    
+                    // Add slots to dropdown
+                    if (data.slots && data.slots.length > 0) {
+                        $.each(data.slots, function (index, slot) {
+                            var option = document.createElement('option');
+                            option.value = slot.id;
+                            
+                            // Show availability information in the option text
+                            if (slot.available) {
+                                option.textContent = slot.display + " (Available: " + slot.remaining + " slots)";
+                            } else {
+                                option.textContent = slot.display + " (Not Available)";
+                                option.disabled = true;
+                            }
+                            
+                            $slotSelect.append(option);
+                        });
+                    } else {
+                        $slotSelect.append('<option value="" disabled>No slots available</option>');
+                    }
+                },
+                error: function(error) {
+                    console.error('Error fetching slots:', error);
+                    $slotSelect.html('<option disabled selected>---SELECT---</option>');
+                    $slotSelect.append('<option value="" disabled>Error loading slots</option>');
                 }
             });
         }
     }
 
-    $("#zip_code_dropdown, #inputDateTime, #select_subcategory").on("change", fetchSlotAvailability);
+    $("#zip_code_dropdown, #inputDateTime").on("change", fetchSlotAvailability);
 });
 
 </script>

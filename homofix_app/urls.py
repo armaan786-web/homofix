@@ -85,6 +85,7 @@ urlpatterns = [
      path('Accounts/Booking/List_of_expert/<int:id>', HodViews.admin_List_of_expert, name='admin_List_of_expert'),
     #  path('Accounts/Task/Assign', HodViews.ad_Task_assign, name='support_Task_assign'),
      path('Accounts/Admin/Reschudule', HodViews.admin_reschedule, name='admin_reschedule'),
+     path('Accounts/Admin/get_available_slots', HodViews.get_available_slots, name='get_available_slots'),
      path('Accounts/Admin/cancel_booking/<int:booking_id>', HodViews.cancel_booking_byadmin, name='cancel_booking_byadmin'),
      path('Accounts/Admin/taskAssign/', HodViews.task_assign, name='task_assign'),
      path('Accounts/Admin/ListofTask/', HodViews.list_of_task, name='list_of_task'),
@@ -238,16 +239,24 @@ urlpatterns = [
 
     
     ##########################  Slot ##################################
-    path("upload-pincode-csv/", HodViews.upload_pincode_csv, name="upload_pincode_csv"),
+
     path('Accounts/Admin/Slot',HodViews.slot,name="slot"),
     path('Accounts/Admin/Add/Slot',HodViews.add_slot,name="add_slot"),
     path('get-pincodes/', HodViews.get_pincodes_by_state, name='get_pincodes_by_state'),
     path('Accounts/Admin/Edit/Slot/<int:id>', HodViews.edit_slot, name='edit_slot'),
     path('Accounts/Admin/Delete/Slot/<int:id>', HodViews.delete_slot, name='delete_slot'),
 
+
+    
+    ##########################  upload csv file pincode ##################################
+
+    
+    path("upload-pincode-csv/", HodViews.upload_pincode_csv, name="upload_pincode_csv"),
+    path("notification/", HodViews.test_notification_view, name="notification"),
     path("get-pincode-by-state/", HodViews.get_pincode_by_state, name="get_pincode_by_state"),
     path('ajax/check-slot-availability/', HodViews.ajax_check_slot_availability, name='ajax_check_slot_availability'),
     
+
 
 
 
@@ -266,4 +275,4 @@ if settings.DEBUG:
 
 
 
-urlpatterns += staticfiles_urlpatterns()       
+urlpatterns += staticfiles_urlpatterns()
