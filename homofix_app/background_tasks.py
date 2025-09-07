@@ -25,7 +25,7 @@ def check_incomplete_bookings():
                 wallet=wallet,
                 type='deduction',
                 amount=Decimal('50.00'),  # Deduct 50 rupees
-                description=f'Since the status of booking {task.booking.order_id} was not marked as complete within 24 hours, ₹50 has been deducted.'
+                description=f'Since the status of booking {task.booking.order_id} was not marked as complete within 48 hours, ₹50 has been deducted.'
             )
             
             # Deduct amount from wallet
