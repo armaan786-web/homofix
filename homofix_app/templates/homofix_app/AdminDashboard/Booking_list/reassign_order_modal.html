@@ -16,9 +16,11 @@
 
                     <select name="reassign_technician" id="" class="form-control bg-dark">
                         {% for technician in tech %}
-                        {% if technician.city|lower == i.booking.city|lower and i.booking.booking_product.first.product.subcategory in technician.subcategories.all %}
+                        {% with pincode_match=technician.working_pincode_areas.filter code=i.booking.zipcode %}
+                        {% if pincode_match %}{% if i.booking.booking_product.first.product.subcategory in technician.subcategories.all %}
                                 <option value="{{technician.id}}">{{technician.admin.first_name}} {{technician.admin.last_name}}</option>
-                            {% endif %}
+                            {% endif %}{% endif %}
+                        {% endwith %}
                         {% endfor %}
                     </select>
                     

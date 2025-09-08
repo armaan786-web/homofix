@@ -145,7 +145,8 @@
                             Cash on Service
                             {% endif %}
                             </td>
-                             <td style="white-space: nowrap;">
+
+                            <td style="white-space: nowrap;">
                                 {% if i.booking.slot == 1 %}08:00 AM - 09:00 AM
                                 {% elif i.booking.slot == 2 %}09:00 AM - 10:00 AM
                                 {% elif i.booking.slot == 3 %}10:00 AM - 11:00 AM
@@ -161,7 +162,10 @@
                                 {% else %}No Slot
                                 {% endif %}
                             </td>
-                            <td><button class="btn btn-sm btn-primary ms-3" data-bs-toggle="modal" data-bs-target="#reassign-{{i.booking.id}}">Reassign</button></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary ms-3" data-bs-toggle="modal" data-bs-target="#reassign-{{i.booking.id}}">Reassign</button>
+                                <button class="btn btn-sm btn-info ms-3" data-bs-toggle="modal" data-bs-target="#exampleVerticallycenteredModal{{i.booking.id}}">Reschedule</button>
+                            </td>
                             <td><button class="btn btn-sm btn-danger ms-3" data-bs-toggle="modal" data-bs-target="#exampleDangerModal{{i.booking.id}}">Cancel</button></td>
                             {% comment %} <td class="nowrap">{{i.booking.supported_by}}</td> {% endcomment %}
                             {% comment %} <td>
@@ -174,6 +178,7 @@
                         </tr>
                         {% include 'homofix_app/AdminDashboard/Booking_list/delete_assign_order_modal.html' %}
                         {% include 'homofix_app/AdminDashboard/Booking_list/reassign_order_modal.html' %}
+                        {% include 'homofix_app/AdminDashboard/Booking_list/task_reschudle_model.html' %}
                         {% comment %} {% include 'homofix_app/AdminDashboard/Booking_list/reassign_order_modal.html' %} {% endcomment %}
                         {% comment %} <div class="col">
                             {% include 'homofix_app/AdminDashboard/Booking_list/reschudle_model.html' %}
@@ -251,12 +256,12 @@
             </div>
              {% endcomment %}
 
-            <div class="pagination">
+             <div class="pagination">
     <ul class="pagination justify-content-center">
         <!-- First Page Link -->
         {% if task.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">&laquo; First</a>
+                <a class="page-link" href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}">&laquo; First</a>
             </li>
         {% else %}
             <li class="page-item disabled">
@@ -267,7 +272,7 @@
         <!-- Previous Page Link -->
         {% if task.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ task.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+                <a class="page-link" href="?page={{ task.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Previous</a>
             </li>
         {% else %}
             <li class="page-item disabled">
@@ -283,7 +288,7 @@
         <!-- Next Page Link -->
         {% if task.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ task.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+                <a class="page-link" href="?page={{ task.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Next</a>
             </li>
         {% else %}
             <li class="page-item disabled">
@@ -294,7 +299,7 @@
         <!-- Last Page Link -->
         {% if task.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ task.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">Last &raquo;</a>
+                <a class="page-link" href="?page={{ task.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}">Last &raquo;</a>
             </li>
         {% else %}
             <li class="page-item disabled">
@@ -303,8 +308,6 @@
         {% endif %}
     </ul>
 </div>
-
-
 
 
 

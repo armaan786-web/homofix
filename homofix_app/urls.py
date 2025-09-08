@@ -96,8 +96,10 @@ urlpatterns = [
 
 
 
-    # ---------------------------------- Reassign technician ---------------------------
-
+    # ---------------------------------- Reschedule and Reassign technician ---------------------------
+    
+    path('Accounts/Admin/Booking/Reschedule',HodViews.admin_reschedule,name="admin_reschedule"),
+    path('Accounts/Admin/Task/Reschedule',HodViews.task_reschedule,name="task_reschedule"),
     path('Accounts/Admin/Reassign',HodViews.reassign,name="reassign"),
 
     ########################## Notification ##################################

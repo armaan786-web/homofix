@@ -2198,6 +2198,58 @@ def admin_reschedule(request):
             
         return redirect('booking_list')
 
+def task_reschedule(request):
+    if request.method == "POST":
+        booking_id = request.POST.get('booking_id')
+        booking_date_str = request.POST.get('booking_date')
+        slot = request.POST.get('slot')
+        
+        # Convert date string to datetime object
+        try:
+            booking_date = datetime.strptime(booking_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Invalid date format")
+            return redirect('list_of_task')
+        
+        try:
+            booking = Booking.objects.get(id=booking_id)
+            
+            # Get the time from the slot
+            if slot:
+                slot_int = int(slot)
+                slot_time_str = dict(SLOT_CHOICES).get(slot_int, "")
+                if slot_time_str:
+                    # Extract start time from slot (e.g., "08:00 AM - 09:00 AM" -> "08:00 AM")
+                    start_time_str = slot_time_str.split(' - ')[0]
+                    
+                    # Parse the time
+                    try:
+                        start_time = datetime.strptime(start_time_str, '%I:%M %p').time()
+                        # Combine date and time
+                        booking_datetime = datetime.combine(booking_date, start_time)
+                        booking_datetime = make_aware(booking_datetime)
+                        
+                        # Update booking
+                        booking.booking_date = booking_datetime
+                        booking.slot = slot_int
+                        booking.save()
+                        
+                        messages.success(request, "Your order reschedule success")
+                    except ValueError:
+                        messages.error(request, "Invalid time format in slot")
+                        return redirect('list_of_task')
+                else:
+                    messages.error(request, "Invalid slot selected")
+                    return redirect('list_of_task')
+            else:
+                messages.error(request, "No slot selected")
+                return redirect('list_of_task')
+                
+        except Booking.DoesNotExist:
+            messages.error(request, "Booking not found")
+            
+        return redirect('list_of_task')
+
 
 
 
