@@ -18,7 +18,7 @@
                         {% for technician in tech %}
                         {% with pincode_match=technician.working_pincode_areas.filter code=i.booking.zipcode %}
                         {% if pincode_match %}{% if i.booking.booking_product.first.product.subcategory in technician.subcategories.all %}
-                                <option value="{{technician.id}}">{{i.technician.admin.username}}</option>
+                                <option value="{{technician.id}}">{{technician.admin.username}}</option>
                             {% endif %}{% endif %}
                         {% endwith %}
                         {% endfor %}
