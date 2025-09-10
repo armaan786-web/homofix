@@ -66,6 +66,7 @@
                             <th class="nowrap">Order By</th>
                             <th class="nowrap">Payment Mode</th>
                             <th>Slot</th>
+                            <th>Reschedule</th>
                             <th>ReAssign</th>
                             <th>Cancel</th>
 
@@ -162,9 +163,10 @@
                                 {% else %}No Slot
                                 {% endif %}
                             </td>
+                            <td><button class="btn btn-sm btn-info ms-3" data-bs-toggle="modal" data-bs-target="#exampleVerticallycenteredModal{{i.booking.id}}">Reschedule</button></td>
                             <td>
                                 <button class="btn btn-sm btn-primary ms-3" data-bs-toggle="modal" data-bs-target="#reassign-{{i.booking.id}}">Reassign</button>
-                                <button class="btn btn-sm btn-info ms-3" data-bs-toggle="modal" data-bs-target="#exampleVerticallycenteredModal{{i.booking.id}}">Reschedule</button>
+                                
                             </td>
                             <td><button class="btn btn-sm btn-danger ms-3" data-bs-toggle="modal" data-bs-target="#exampleDangerModal{{i.booking.id}}">Cancel</button></td>
                             {% comment %} <td class="nowrap">{{i.booking.supported_by}}</td> {% endcomment %}
