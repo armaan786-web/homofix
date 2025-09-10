@@ -104,7 +104,7 @@ urlpatterns = [
     path('api/Expert/invoice/download/<int:booking_id>.pdf', API_Views.expert_invoice_download, name='expert_invoice_download'),
 
     path('api/Rebooking/Status/Update',API_Views.RebookingStatusUpdated,name="RebookingStatusUpdated"),
-    path('check-coupon-validity/', API_Views.check_coupon_validity, name='check_coupon_validity'),
+    path('api/check-coupon-validity/', API_Views.check_coupon_validity, name='check_coupon_validity'),
     path('check-token-expiration/', API_Views.TokenExpirationCheckAPIView.as_view(), name='check-token-expiration'),
     path('api/customer/payments/',API_Views.customerpayments,name="payment"),
     path('api/customer/profile/update/',API_Views.customerupdateprofile,name="customerupdateprofile"),
