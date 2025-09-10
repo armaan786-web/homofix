@@ -58,6 +58,7 @@
                             <th>Date</th>
                             <th class="nowrap">Order By</th>
                             <th class="nowrap">Expert By</th>
+                            <th>Slot</th>
                             {% comment %} <th>Actions</th> {% endcomment %}
                         </tr>
                     </thead>
@@ -110,6 +111,22 @@
                             </td>
                             {% comment %} <td class="nowrap">{{i.booking_product.booking.supported_by.admin.username}}</td> {% endcomment %}
                             <td>{{i.technician.admin.username}}</td>
+                            <td style="white-space: nowrap;">
+                                {% if i.booking_product.booking.slot == 1 %}08:00 AM - 09:00 AM
+                                {% elif i.booking_product.booking.slot == 2 %}09:00 AM - 10:00 AM
+                                {% elif i.booking_product.booking.slot == 3 %}10:00 AM - 11:00 AM
+                                {% elif i.booking_product.booking.slot == 4 %}11:00 AM - 12:00 PM
+                                {% elif i.booking_product.booking.slot == 5 %}12:00 PM - 01:00 PM
+                                {% elif i.booking_product.booking.slot == 6 %}01:00 PM - 02:00 PM
+                                {% elif i.booking_product.booking.slot == 7 %}02:00 PM - 03:00 PM
+                                {% elif i.booking_product.booking.slot == 8 %}03:00 PM - 04:00 PM
+                                {% elif i.booking_product.booking.slot == 9 %}04:00 PM - 05:00 PM
+                                {% elif i.booking_product.booking.slot == 10 %}05:00 PM - 06:00 PM
+                                {% elif i.booking_product.booking.slot == 11 %}06:00 PM - 07:00 PM
+                                {% elif i.booking_product.booking.slot == 12 %}07:00 PM - 08:00 PM
+                                {% else %}No Slot
+                                {% endif %}
+                            </td>
                            
                             {% comment %} <td>
                                 <div class="d-flex">
