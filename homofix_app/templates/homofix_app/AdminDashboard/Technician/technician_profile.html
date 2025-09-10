@@ -373,7 +373,7 @@
                                           </option>
                                        {% endfor %}
                                     </select>
-                                   
+                                    
                                 </div>
 
                                 
@@ -516,6 +516,21 @@
 
 <script>
     console.log("Slot modal script loaded...");
+
+    // Set the initial state based on technician's working pincodes when page loads
+    $(document).ready(function() {
+        // Check if technician has any working pincodes
+        {% if technician.working_pincode_areas.exists %}
+            // Get the state of the first working pincode
+            var initialState = "{{ technician.working_pincode_areas.first.state }}";
+            // Set the state in the dropdown
+            if (initialState) {
+                $('#stateSelect').val(initialState);
+                // Trigger the change event to load pincodes for this state
+                $('#stateSelect').trigger('change');
+            }
+        {% endif %}
+    });
 
     $(document).on('change', '#stateSelect', function () {
         console.log("State changed");
