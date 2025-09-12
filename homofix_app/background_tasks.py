@@ -5,7 +5,6 @@ from .models import Task, Wallet, WalletHistory
 
 def check_incomplete_bookings():
     # Get all tasks that are more than 24 hours old
-    # twenty_four_hours_ago = timezone.now() - timedelta(hours=24)
     twenty_four_hours_ago = timezone.now() - timedelta(hours=48)
     incomplete_tasks = Task.objects.filter(
         booking__booking_date__lte=twenty_four_hours_ago,
@@ -13,8 +12,9 @@ def check_incomplete_bookings():
     )
 
     for task in incomplete_tasks:
-        # Check if the booking associated with this task is not completed
-        if task.booking and task.booking.status != 'Completed':
+        # Check if the booking associated with this task is assigned but not completed
+        # Only deduct money if booking status is 'Assign'
+        if task.booking and task.booking.status == 'Assign':
             technician = task.technician
             
             # Get or create wallet for the technician
@@ -25,7 +25,7 @@ def check_incomplete_bookings():
                 wallet=wallet,
                 type='deduction',
                 amount=Decimal('50.00'),  # Deduct 50 rupees
-                description=f'Since the status of booking {task.booking.order_id} was not marked as complete within 48 hours, ₹50 has been deducted.'
+                description=f'Since the status of booking {task.booking.order_id} was not marked as complete within 24 hours, ₹50 has been deducted.'
             )
             
             # Deduct amount from wallet
