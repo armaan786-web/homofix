@@ -43,8 +43,8 @@ from datetime import timedelta
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework import generics
 from homofix_app.services.auto_assign import assign_employee_to_booking
-from utils.firebase import send_push_notification
 
+from utils.firebase import send_push_notification
 
 
 class LoginViewSet(CreateAPIView):
@@ -404,6 +404,7 @@ from django.db import transaction
 
 class TaskViewSet(ModelViewSet):
     authentication_classes = [BasicAuthentication]
+   
     serializer_class = TaskSerializer
     queryset = Task.objects.all()
 
@@ -484,6 +485,8 @@ class TaskViewSet(ModelViewSet):
                     )
                     settlement.save()
 
+                    
+
                     # ----------------------------------- Invoice Part -----------------------
 
                     try:
@@ -506,50 +509,54 @@ class TaskViewSet(ModelViewSet):
                         if booking:
                             invoice = Invoice.objects.filter(booking_id=booking).first()
                             if not invoice:
-                                invoice = Invoice.objects.create(booking_id=booking)
-                                bookingprod = BookingProduct.objects.filter(
-                                    booking=booking
-                                ).first()
+                                try:
+                                    invoice = Invoice.objects.create(booking_id=booking)
+                                    bookingprod = BookingProduct.objects.filter(
+                                        booking=booking
+                                    ).first()
 
-                                # addon = Addon.objects.filter(booking_prod_id=bookingprod)
+                                    if not bookingprod:
+                                        print("BookingProduct not found for booking ID:", booking.id)
+                                        raise Exception("BookingProduct not found")
 
-                                addon = Addon.objects.filter(
-                                    booking_prod_id=bookingprod
-                                )
+                                    # addon = Addon.objects.filter(booking_prod_id=bookingprod)
 
-                                input_file = render_to_string(
-                                    "Invoice/invoice.html",
-                                    {
-                                        "booking": invoice,
-                                        "addon": addon,
-                                        "total": total,
-                                        "cgst_sgst": cgst_sgst,
-                                        "grandtotal": grandtotal,
-                                    },
-                                )
-                                options = {"enable-local-file-access": ""}
+                                    addon = Addon.objects.filter(
+                                        booking_prod_id=bookingprod
+                                    )
 
-                                pdf_data = pdfkit.from_string(
-                                    input_file, False, options=options
-                                )
+                                    input_file = render_to_string(
+                                        "Invoice/invoice.html",
+                                        {
+                                            "booking": invoice,
+                                            "addon": addon,
+                                            "total": total,
+                                            "cgst_sgst": cgst_sgst,
+                                            "grandtotal": grandtotal,
+                                        },
+                                    )
+                                    options = {"enable-local-file-access": ""}
 
-                                if pdf_data:
-                                    invoice.invoice = pdf_data
-                                    invoice.save()
-                                    # invoice.save()
-                                    print("PDF data saved in invoice successfully.")
+                                    pdf_data = pdfkit.from_string(
+                                        input_file, False, options=options
+                                    )
 
-                                # return Response({'success': True})
+                                    if pdf_data:
+                                        invoice.invoice = pdf_data
+                                        invoice.save()
+                                        print("PDF data saved in invoice successfully.")
+                                    else:
+                                        print("Failed to generate PDF data for invoice")
+                                except Exception as inner_e:
+                                    print("Error creating invoice:", inner_e)
                             else:
-                                pass
-                                # Booking does not exist
-                                # return Response({'Error': False, 'error': 'Invoice already created'})
+                                print("Invoice already exists for booking ID:", booking.id)
                     except Exception as e:
-                        print(e)
+                        print("Error in invoice creation process:", e)
 
                 if booking.status == "Completed" and booking.cash_on_service == True:
                     
-                    booking.satatus = "Completed"
+                    booking.status = "Completed"
                     booking.save()
                     tax_rate = 0.18
                     booking_amount = booking.total_amount
@@ -598,6 +605,7 @@ class TaskViewSet(ModelViewSet):
                     )
                     settlement.save()
 
+
                     try:
                         booking = Booking.objects.get(id=booking_id)
                         # tax = booking.tax_amount
@@ -615,48 +623,56 @@ class TaskViewSet(ModelViewSet):
                         if booking:
                             invoice = Invoice.objects.filter(booking_id=booking).first()
                             if not invoice:
-                                invoice = Invoice.objects.create(booking_id=booking)
-                                bookingprod = BookingProduct.objects.filter(
-                                    booking=booking
-                                ).first()
+                                try:
+                                    invoice = Invoice.objects.create(booking_id=booking)
+                                    bookingprod = BookingProduct.objects.filter(
+                                        booking=booking
+                                    ).first()
 
-                                # addon = Addon.objects.filter(booking_prod_id=bookingprod)
+                                    if not bookingprod:
+                                        print("BookingProduct not found for booking ID:", booking.id)
+                                        raise Exception("BookingProduct not found")
 
-                                addon = Addon.objects.filter(
-                                    booking_prod_id=bookingprod
-                                )
+                                    # addon = Addon.objects.filter(booking_prod_id=bookingprod)
 
-                                input_file = render_to_string(
-                                    "Invoice/invoice.html",
-                                    {
-                                        "booking": invoice,
-                                        "addon": addon,
-                                        "total": total,
-                                        "cgst_sgst": cgst_sgst,
-                                        "grandtotal": grandtotal,
-                                    },
-                                )
-                                options = {"enable-local-file-access": ""}
+                                    addon = Addon.objects.filter(
+                                        booking_prod_id=bookingprod
+                                    )
 
-                                pdf_data = pdfkit.from_string(
-                                    input_file, False, options=options
-                                )
+                                    input_file = render_to_string(
+                                        "Invoice/invoice.html",
+                                        {
+                                            "booking": invoice,
+                                            "addon": addon,
+                                            "total": total,
+                                            "cgst_sgst": cgst_sgst,
+                                            "grandtotal": grandtotal,
+                                        },
+                                    )
+                                    options = {"enable-local-file-access": ""}
 
-                                if pdf_data:
-                                    invoice.invoice = pdf_data
-                                    invoice.save()
-                                    # invoice.save()
-                                    print("PDF data saved in invoice successfully.")
+                                    pdf_data = pdfkit.from_string(
+                                        input_file, False, options=options
+                                    )
 
-                                # return Response({'success': True})
+                                    if pdf_data:
+                                        invoice.invoice = pdf_data
+                                        invoice.save()
+                                        print("PDF data saved in invoice successfully.")
+                                    else:
+                                        print("Failed to generate PDF data for invoice")
+                                except Exception as inner_e:
+                                    print("Error creating invoice:", inner_e)
                             else:
-                                pass
-                                # Booking does not exist
-                                # return Response({'Error': False, 'error': 'Invoice already created'})
+                                print("Invoice already exists for booking ID:", booking.id)
                     except Exception as e:
-                        print(e)
-                    
-                # ---------------- Notification Block ----------------
+                        print("Error in invoice creation process:", e)
+
+
+                
+                # ------------------- Notificationssssssssssss 
+
+                 # ---------------- Notification Block ----------------
                 try:
                     # Technician ko notification
                     technician = task.technician
@@ -684,8 +700,8 @@ class TaskViewSet(ModelViewSet):
 
                 # --------------------------------
 
-
                 return Response({"success": True})
+            
             except Booking.DoesNotExist:
                 return Response({"success": False, "message": "Booking not found."})
         else:
@@ -3314,7 +3330,6 @@ def check_slot_availability(request):
 
 
 
-
 @api_view(["POST"])
 def save_fcm_token(request):
     tech_id = request.data.get("technician_id")
@@ -3330,3 +3345,25 @@ def save_fcm_token(request):
         return Response({"success": True, "message": "Token saved successfully"})
     except Technician.DoesNotExist:
         return Response({"success": False, "message": "Technician not found"})
+
+
+# @api_view(["POST"])
+# def save_fcm_token(request):
+#     tech_id = request.data.get("technician_id")
+#     token = request.data.get("fcm_token")
+
+#     if not tech_id or not token:
+#         return Response({"success": False, "message": "technician_id and fcm_token required"})
+
+#     try:
+#         technician = Technician.objects.get(id=tech_id)
+
+#         if technician.fcm_token == token:
+#             return Response({"success": True, "message": "Token already up to date"})
+        
+#         technician.fcm_token = token
+#         technician.save()
+
+#         return Response({"success": True, "message": "Token saved/updated successfully"})
+#     except Technician.DoesNotExist:
+#         return Response({"success": False, "message": "Technician not found"})
