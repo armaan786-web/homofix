@@ -14,7 +14,7 @@ def check_incomplete_bookings():
     for task in incomplete_tasks:
         # Check if the booking associated with this task is assigned but not completed
         # Only deduct money if booking status is 'Assign'
-        if task.booking and task.booking.status == 'Assign':
+        if task.booking and task.booking.status == 'Assign' or task.booking.status == 'Reached':
             technician = task.technician
             
             # Get or create wallet for the technician
