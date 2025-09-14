@@ -673,30 +673,30 @@ class TaskViewSet(ModelViewSet):
                 # ------------------- Notificationssssssssssss 
 
                  # ---------------- Notification Block ----------------
-                # try:
-                #     # Technician ko notification
-                #     technician = task.technician
+                try:
+                    # Technician ko notification
+                    technician = task.technician
                    
-                #     if technician and hasattr(technician, "fcm_token") and technician.fcm_token:
-                #         send_push_notification(
-                #             token=technician.fcm_token,
-                #             title="Booking Update",
-                #             body=f"Booking #{booking.id} status updated to {booking.status}",
-                #             data={"booking_id": str(booking.id), "status": booking.status}
-                #         )
-                #         print("sendginnnnnnnnnnn success")
+                    if technician and hasattr(technician, "fcm_token") and technician.fcm_token:
+                        send_push_notification(
+                            token=technician.fcm_token,
+                            title="Booking Update",
+                            body=f"Booking #{booking.id} status updated to {booking.status}",
+                            data={"booking_id": str(booking.id), "status": booking.status}
+                        )
+                        print("sendginnnnnnnnnnn success")
 
-                #     # User ko notification
-                #     booking_user = getattr(booking, "user", None)
-                #     if booking_user and hasattr(booking_user, "fcm_token") and booking_user.fcm_token:
-                #         send_push_notification(
-                #             token=booking_user.fcm_token,
-                #             title="Booking Update",
-                #             body=f"Your booking #{booking.id} is now {booking.status}",
-                #             data={"booking_id": str(booking.id), "status": booking.status}
-                #         )
-                # except Exception as e:
-                #     print("Notification error:", e)
+                    # User ko notification
+                    booking_user = getattr(booking, "user", None)
+                    if booking_user and hasattr(booking_user, "fcm_token") and booking_user.fcm_token:
+                        send_push_notification(
+                            token=booking_user.fcm_token,
+                            title="Booking Update",
+                            body=f"Your booking #{booking.id} is now {booking.status}",
+                            data={"booking_id": str(booking.id), "status": booking.status}
+                        )
+                except Exception as e:
+                    print("Notification error:", e)
 
                 # --------------------------------
 
