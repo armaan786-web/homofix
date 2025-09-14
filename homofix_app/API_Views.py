@@ -507,52 +507,62 @@ class TaskViewSet(ModelViewSet):
 
                         bkng_id = Booking.objects.filter(id=booking_id)
                         if booking:
-                            invoice = Invoice.objects.filter(booking_id=booking).first()
-                            if not invoice:
-                                try:
-                                    invoice = Invoice.objects.create(booking_id=booking)
-                                    bookingprod = BookingProduct.objects.filter(
-                                        booking=booking
-                                    ).first()
+                            try:
+                                # पहले चेक करें कि इनवॉइस पहले से मौजूद है या नहीं
+                                invoice = Invoice.objects.filter(booking_id=booking).first()
+                                if not invoice:
+                                    try:
+                                        # BookingProduct की जांच करें
+                                        bookingprod = BookingProduct.objects.filter(
+                                            booking=booking
+                                        ).first()
 
-                                    if not bookingprod:
-                                        print("BookingProduct not found for booking ID:", booking.id)
-                                        raise Exception("BookingProduct not found")
+                                        if not bookingprod:
+                                            print("BookingProduct not found for booking ID:", booking.id)
+                                            # लॉग करें लेकिन प्रोसेस को जारी रखें
+                                            print("Skipping invoice creation due to missing BookingProduct")
+                                            continue
 
-                                    # addon = Addon.objects.filter(booking_prod_id=bookingprod)
+                                        # इनवॉइस बनाएं
+                                        invoice = Invoice.objects.create(booking_id=booking)
+                                        
+                                        # एडऑन प्राप्त करें
+                                        addon = Addon.objects.filter(
+                                            booking_prod_id=bookingprod
+                                        )
 
-                                    addon = Addon.objects.filter(
-                                        booking_prod_id=bookingprod
-                                    )
+                                        # HTML टेम्पलेट रेंडर करें
+                                        input_file = render_to_string(
+                                            "Invoice/invoice.html",
+                                            {
+                                                "booking": invoice,
+                                                "addon": addon,
+                                                "total": total,
+                                                "cgst_sgst": cgst_sgst,
+                                                "grandtotal": grandtotal,
+                                            },
+                                        )
+                                        options = {"enable-local-file-access": ""}
 
-                                    input_file = render_to_string(
-                                        "Invoice/invoice.html",
-                                        {
-                                            "booking": invoice,
-                                            "addon": addon,
-                                            "total": total,
-                                            "cgst_sgst": cgst_sgst,
-                                            "grandtotal": grandtotal,
-                                        },
-                                    )
-                                    options = {"enable-local-file-access": ""}
+                                        # PDF जनरेट करें
+                                        pdf_data = pdfkit.from_string(
+                                            input_file, False, options=options
+                                        )
 
-                                    pdf_data = pdfkit.from_string(
-                                        input_file, False, options=options
-                                    )
-
-                                    if pdf_data:
-                                        invoice.invoice = pdf_data
-                                        invoice.save()
-                                        print("PDF data saved in invoice successfully.")
-                                    else:
-                                        print("Failed to generate PDF data for invoice")
-                                except Exception as inner_e:
-                                    print("Error creating invoice:", inner_e)
-                            else:
-                                print("Invoice already exists for booking ID:", booking.id)
+                                        if pdf_data:
+                                            invoice.invoice = pdf_data
+                                            invoice.save()
+                                            print("PDF data saved in invoice successfully.")
+                                        else:
+                                            print("Failed to generate PDF data for invoice - empty PDF data")
+                                    except Exception as inner_e:
+                                        print("Error in invoice creation details:", str(inner_e))
+                                else:
+                                    print("Invoice already exists for booking ID:", booking.id, "- skipping creation")
+                            except Exception as invoice_e:
+                                print("Error in invoice processing:", str(invoice_e))
                     except Exception as e:
-                        print("Error in invoice creation process:", e)
+                        print("Major error in invoice creation process:", str(e))
 
                 if booking.status == "Completed" and booking.cash_on_service == True:
                     
@@ -621,52 +631,62 @@ class TaskViewSet(ModelViewSet):
                         bkng_id = Booking.objects.filter(id=booking_id)
                         
                         if booking:
-                            invoice = Invoice.objects.filter(booking_id=booking).first()
-                            if not invoice:
-                                try:
-                                    invoice = Invoice.objects.create(booking_id=booking)
-                                    bookingprod = BookingProduct.objects.filter(
-                                        booking=booking
-                                    ).first()
+                            try:
+                                # पहले चेक करें कि इनवॉइस पहले से मौजूद है या नहीं
+                                invoice = Invoice.objects.filter(booking_id=booking).first()
+                                if not invoice:
+                                    try:
+                                        # BookingProduct की जांच करें
+                                        bookingprod = BookingProduct.objects.filter(
+                                            booking=booking
+                                        ).first()
 
-                                    if not bookingprod:
-                                        print("BookingProduct not found for booking ID:", booking.id)
-                                        raise Exception("BookingProduct not found")
+                                        if not bookingprod:
+                                            print("BookingProduct not found for booking ID:", booking.id)
+                                            # लॉग करें लेकिन प्रोसेस को जारी रखें
+                                            print("Skipping invoice creation due to missing BookingProduct")
+                                            continue
 
-                                    # addon = Addon.objects.filter(booking_prod_id=bookingprod)
+                                        # इनवॉइस बनाएं
+                                        invoice = Invoice.objects.create(booking_id=booking)
+                                        
+                                        # एडऑन प्राप्त करें
+                                        addon = Addon.objects.filter(
+                                            booking_prod_id=bookingprod
+                                        )
 
-                                    addon = Addon.objects.filter(
-                                        booking_prod_id=bookingprod
-                                    )
+                                        # HTML टेम्पलेट रेंडर करें
+                                        input_file = render_to_string(
+                                            "Invoice/invoice.html",
+                                            {
+                                                "booking": invoice,
+                                                "addon": addon,
+                                                "total": total,
+                                                "cgst_sgst": cgst_sgst,
+                                                "grandtotal": grandtotal,
+                                            },
+                                        )
+                                        options = {"enable-local-file-access": ""}
 
-                                    input_file = render_to_string(
-                                        "Invoice/invoice.html",
-                                        {
-                                            "booking": invoice,
-                                            "addon": addon,
-                                            "total": total,
-                                            "cgst_sgst": cgst_sgst,
-                                            "grandtotal": grandtotal,
-                                        },
-                                    )
-                                    options = {"enable-local-file-access": ""}
+                                        # PDF जनरेट करें
+                                        pdf_data = pdfkit.from_string(
+                                            input_file, False, options=options
+                                        )
 
-                                    pdf_data = pdfkit.from_string(
-                                        input_file, False, options=options
-                                    )
-
-                                    if pdf_data:
-                                        invoice.invoice = pdf_data
-                                        invoice.save()
-                                        print("PDF data saved in invoice successfully.")
-                                    else:
-                                        print("Failed to generate PDF data for invoice")
-                                except Exception as inner_e:
-                                    print("Error creating invoice:", inner_e)
-                            else:
-                                print("Invoice already exists for booking ID:", booking.id)
+                                        if pdf_data:
+                                            invoice.invoice = pdf_data
+                                            invoice.save()
+                                            print("PDF data saved in invoice successfully.")
+                                        else:
+                                            print("Failed to generate PDF data for invoice - empty PDF data")
+                                    except Exception as inner_e:
+                                        print("Error in invoice creation details:", str(inner_e))
+                                else:
+                                    print("Invoice already exists for booking ID:", booking.id, "- skipping creation")
+                            except Exception as invoice_e:
+                                print("Error in invoice processing:", str(invoice_e))
                     except Exception as e:
-                        print("Error in invoice creation process:", e)
+                        print("Major error in invoice creation process:", str(e))
 
 
                 
