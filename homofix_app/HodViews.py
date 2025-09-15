@@ -2409,44 +2409,95 @@ def task_assign(request):
 
 #     return render(request, 'homofix_app/AdminDashboard/Booking_list/task.html', context)
 
+# def list_of_task(request):
+#     # Get the search query for technician's name or number
+#     search_query = request.GET.get('search', '')  # Get the search term from the URL
+
+#     # Filter tasks based on the status
+#     task = Task.objects.filter(booking__status__in=["Assign", "Inprocess", "Reached", "Proceed"]).order_by("-created_at")
+    
+#     # Filter tasks by technician name or number if a search query exists
+#     if search_query:
+#         task = task.filter(
+#             technician__admin__username__icontains=search_query  # Search by technician's name
+#         ) | task.filter(booking__order_id__icontains=search_query) | task.filter(booking__customer__mobile__icontains=search_query)
+#         #| task.filter(
+#             #technician__number__icontains=search_query  # Or search by technician's number
+#         #)
+
+#     # Paginate the task list
+#     paginator = Paginator(task, 10)  # Show 10 tasks per page
+#     page_number = request.GET.get('page')  # Get the page number from the URL
+#     page_obj = paginator.get_page(page_number)  # Get the page object
+    
+#     # Other counts
+#     tech = Technician.objects.all()
+#     new_expert_count = Technician.objects.filter(status="New").count()
+#     booking_count = Booking.objects.filter(status="New").count()
+#     rebooking_count = Rebooking.objects.all().count()
+#     customer_count = Customer.objects.all().count()
+
+#     context = {
+#         'task': page_obj,  # Pass the page object to the template
+#         'new_expert_count': new_expert_count,
+#         'booking_count': booking_count,
+#         'rebooking_count': rebooking_count,
+#         'customer_count': customer_count,
+#         'tech': tech,
+#         'search_query': search_query  # Pass the search query to the template
+#     }
+
+#     return render(request, 'homofix_app/AdminDashboard/Booking_list/task.html', context)
+
+
 def list_of_task(request):
-    # Get the search query for technician's name or number
-    search_query = request.GET.get('search', '')  # Get the search term from the URL
+    search_query = request.GET.get('search', '')
+    tasks_qs = Task.objects.filter(
+        booking__status__in=["Assign", "Inprocess", "Reached", "Proceed"]
+    ).order_by("-created_at")
 
-    # Filter tasks based on the status
-    task = Task.objects.filter(booking__status__in=["Assign", "Inprocess", "Reached", "Proceed"]).order_by("-created_at")
-    
-    # Filter tasks by technician name or number if a search query exists
     if search_query:
-        task = task.filter(
-            technician__admin__username__icontains=search_query  # Search by technician's name
-        ) | task.filter(booking__order_id__icontains=search_query) | task.filter(booking__customer__mobile__icontains=search_query)
-        #| task.filter(
-            #technician__number__icontains=search_query  # Or search by technician's number
-        #)
+        tasks_qs = tasks_qs.filter(
+            Q(technician__admin__username__icontains=search_query) |
+            Q(booking__order_id__icontains=search_query) |
+            Q(booking__customer__mobile__icontains=search_query)
+        )
 
-    # Paginate the task list
-    paginator = Paginator(task, 10)  # Show 10 tasks per page
-    page_number = request.GET.get('page')  # Get the page number from the URL
-    page_obj = paginator.get_page(page_number)  # Get the page object
-    
-    # Other counts
-    tech = Technician.objects.all()
-    new_expert_count = Technician.objects.filter(status="New").count()
-    booking_count = Booking.objects.filter(status="New").count()
-    rebooking_count = Rebooking.objects.all().count()
-    customer_count = Customer.objects.all().count()
+    from django.core.paginator import Paginator
+    paginator = Paginator(tasks_qs, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Build map of matched technicians per task
+    task_technician_map = {}
+    all_techs = Technician.objects.prefetch_related('working_pincode_areas', 'subcategories')
+
+    for task in page_obj:
+        matched = []
+        booking = task.booking
+        zipcode = booking.zipcode
+        # get subcategory if exists
+        subcategory = None
+        bps = booking.booking_product.all()
+        if bps.exists():
+            subcategory = bps.first().product.subcategory
+
+        if zipcode and subcategory:
+            for tech in all_techs:
+                # check zipcode match
+                if tech.working_pincode_areas.filter(code=zipcode).exists():
+                    # check subcategory match
+                    if tech.subcategories.filter(id=subcategory.id).exists():
+                        matched.append(tech)
+        # Add even if matched empty
+        task_technician_map[task.id] = matched
 
     context = {
-        'task': page_obj,  # Pass the page object to the template
-        'new_expert_count': new_expert_count,
-        'booking_count': booking_count,
-        'rebooking_count': rebooking_count,
-        'customer_count': customer_count,
-        'tech': tech,
-        'search_query': search_query  # Pass the search query to the template
+        'task': page_obj,
+        'task_technician_map': task_technician_map,
+        'search_query': search_query,
+        # ... other context as before
     }
-
     return render(request, 'homofix_app/AdminDashboard/Booking_list/task.html', context)
 
 

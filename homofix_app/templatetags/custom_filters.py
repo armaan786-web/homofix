@@ -23,3 +23,10 @@ def get_slot_display(slot_value):
             return display
     
     return f"Slot {slot_value}"
+
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key, [])
+
