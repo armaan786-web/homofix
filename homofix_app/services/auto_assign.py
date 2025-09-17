@@ -35,7 +35,7 @@ def assign_employee_to_booking(booking):
 
         # Fetch technicians in pincode first
         techs_in_pincode = Technician.objects.filter(
-            working_pincode_areas__code=int(booking.zipcode)
+            working_pincode_areas__code=int(booking.zipcode),showonline__online=1
         ).prefetch_related("subcategories").distinct()
 
         # Now filter in Python for subcategory match
