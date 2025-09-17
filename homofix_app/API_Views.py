@@ -827,10 +827,10 @@ class TechniciantaskViewSet(ModelViewSet):
                     # ----------------------------------- Invoice Part -----------------------
 
                     try:
-                        booking = Booking.objects.get(id=booking_id)
-                        booking.status = status
-                        booking.save()
-                        print("helooooo status", booking.status,"booking id",booking.id)
+                        # booking = Booking.objects.get(id=booking_id)
+                        # booking.status = status
+                        # booking.save()
+                        # print("helooooo status", booking.status,"booking id",booking.id)
                
                         # tax = booking.tax_amount
                         subtotal = booking.subtotal
