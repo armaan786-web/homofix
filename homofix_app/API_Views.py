@@ -3165,6 +3165,171 @@ SLOT_CHOICES_DICT = dict(SLOT_CHOICES)
 
 
 
+# @api_view(['POST'])
+# @authentication_classes([JWTAuthentication])
+# @permission_classes([IsAuthenticated])
+# def check_slot_availability(request):
+#     """
+#     Check all slots availability (1-12) for:
+#     - zipcode
+#     - date
+#     - subcategory_ids (list)
+#     """
+
+#     data = request.data
+
+#     zipcode = data.get("zipcode")
+#     date_str = data.get("date")
+#     subcategory_ids = data.get("subcategory_ids", [])
+
+#     if not zipcode or not date_str or not subcategory_ids:
+#         return Response({
+#             "status": "error",
+#             "message": "zipcode, date, and subcategory_ids are required fields."
+#         })
+
+#     # Parse subcategory_ids
+#     try:
+#         subcategory_ids = list(map(int, subcategory_ids))
+#         subcategories = SubCategory.objects.filter(id__in=subcategory_ids)
+#         if not subcategories.exists():
+#             return Response({
+#                 "status": "error",
+#                 "message": "No valid subcategories found."
+#             })
+#     except:
+#         return Response({
+#             "status": "error",
+#             "message": "subcategory_ids must be a list of integers."
+#         })
+
+#     # Convert date string to timezone-aware datetime
+#     try:
+#         date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+#         naive_datetime = datetime.combine(date_obj, dt_time.min)
+#         aware_datetime = timezone.make_aware(naive_datetime)
+#     except ValueError:
+#         return Response({
+#             "status": "error",
+#             "message": "Invalid date format. Use YYYY-MM-DD."
+#         })
+
+#     universal_slot_obj = UniversalCredential.objects.first()
+#     universal_limit = universal_slot_obj.universal_slot if universal_slot_obj and universal_slot_obj.universal_slot is not None else 0
+
+#     response_slots = []
+
+#     for slot_number in range(1, 13):
+#         slots = Slot.objects.filter(
+#             # date=date_obj,  # Uncomment if needed
+#             slot=slot_number,
+#             subcategories__in=subcategories
+#         ).distinct()
+
+#         matching_slot = None
+#         if slots.exists():
+#             for slot_obj in slots:
+#                 if slot_obj.pincode.filter(code=int(zipcode)).exists():
+#                     matching_slot = slot_obj
+#                     break
+
+#         # ✅ Determine limit
+#         if matching_slot and matching_slot.limit is not None:
+#             limit = matching_slot.limit
+#         else:
+#             limit = universal_limit
+
+#         if limit == 0:
+#             limit = universal_limit  # fallback
+
+#         # Calculate current assigned bookings
+#         aware_start_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.min))
+#         aware_end_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.max))
+#         current_count = Booking.objects.filter(
+#             booking_date__range=(aware_start_dt, aware_end_dt),
+#             slot=slot_number,
+#             zipcode=zipcode,
+#             # status='Assign'
+#         ).count()
+
+#         remaining = limit - current_count
+
+#         response_slots.append({
+#             "slot": slot_number,
+#             "time": SLOT_CHOICES_DICT.get(slot_number, f"Slot {slot_number}"),
+#             "status": "available" if remaining > 0 else "unavailable",
+#             "limit": limit,
+#             "current_bookings": current_count,
+#             "remaining_slots": remaining if remaining > 0 else 0
+#         })
+
+
+#     # for slot_number in range(1, 13):
+#     #     print("okkkkkkkkkkkkkkkkkkkkkkk")
+#     #     # Find matching slots
+#     #     slots = Slot.objects.filter(
+#     #         # date=date_obj,
+#     #         slot=slot_number,
+#     #         subcategories__in=subcategories
+#     #     ).distinct()
+#     #     print("gggggggggoooooooooooooooooooooooo",slots)
+
+#     #     matching_slot = None
+#     #     if slots.exists():
+#     #         for slot_obj in slots:
+#     #             if slot_obj.pincode.filter(code=int(zipcode)).exists():
+#     #                 matching_slot = slot_obj
+#     #                 break
+
+#     #     # ✅ Determine limit
+#     #     if matching_slot and matching_slot.limit is not None:
+#     #         # Use specific slot limit if available
+#     #         limit = matching_slot.limit
+#     #         print(f"✅ Slot {slot_number} → Using Slot limit: {limit}")
+#     #     else:
+#     #         # Fall back to universal limit
+#     #         limit = universal_limit
+#     #         print(f"⚠ Slot {slot_number} → No specific slot found. Using Universal limit: {limit}")
+
+#     #     if limit == 0:
+#     #         # Skip if limit is 0
+#     #         continue
+
+#     #     # Calculate current assigned bookings in this slot
+#     #     aware_start_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.min))
+#     #     aware_end_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.max))
+#     #     current_count = Booking.objects.filter(
+#     #         booking_date__range=(aware_start_dt, aware_end_dt),
+#     #         slot=slot_number,
+#     #         zipcode=zipcode,
+#     #         # status='Assign'
+#     #     ).count()
+
+#     #     remaining = limit - current_count
+#     #     if remaining > 0:
+#     #         response_slots.append({
+#     #             "slot": slot_number,
+#     #             "time": SLOT_CHOICES_DICT.get(slot_number, f"Slot {slot_number}"),
+#     #             "status": "available",
+#     #             "limit": limit,
+#     #             "current_bookings": current_count,
+#     #             "remaining_slots": remaining
+#     #         })
+#     #     else:
+#     #         print(f"❌ Slot {slot_number} → Limit reached. Skipping.")
+
+
+
+#     return Response({
+#         "status": "ok",
+#         "slots": response_slots
+#     })
+
+
+
+
+
+
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -3236,11 +3401,11 @@ def check_slot_availability(request):
         # ✅ Determine limit
         if matching_slot and matching_slot.limit is not None:
             limit = matching_slot.limit
+            # अगर स्पेसिफिक स्लॉट का लिमिट 0 है, तो इसे अनउपलब्ध मानें
+            if limit == 0:
+                limit = 0  # 0 लिमिट का मतलब है कि स्लॉट अनउपलब्ध है
         else:
             limit = universal_limit
-
-        if limit == 0:
-            limit = universal_limit  # fallback
 
         # Calculate current assigned bookings
         aware_start_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.min))
@@ -3254,14 +3419,25 @@ def check_slot_availability(request):
 
         remaining = limit - current_count
 
-        response_slots.append({
-            "slot": slot_number,
-            "time": SLOT_CHOICES_DICT.get(slot_number, f"Slot {slot_number}"),
-            "status": "available" if remaining > 0 else "unavailable",
-            "limit": limit,
-            "current_bookings": current_count,
-            "remaining_slots": remaining if remaining > 0 else 0
-        })
+        # अगर लिमिट 0 है तो स्लॉट को हमेशा अनउपलब्ध दिखाएं
+        if limit == 0:
+            response_slots.append({
+                "slot": slot_number,
+                "time": SLOT_CHOICES_DICT.get(slot_number, f"Slot {slot_number}"),
+                "status": "unavailable",
+                "limit": limit,
+                "current_bookings": current_count,
+                "remaining_slots": 0
+            })
+        else:
+            response_slots.append({
+                "slot": slot_number,
+                "time": SLOT_CHOICES_DICT.get(slot_number, f"Slot {slot_number}"),
+                "status": "available" if remaining > 0 else "unavailable",
+                "limit": limit,
+                "current_bookings": current_count,
+                "remaining_slots": remaining if remaining > 0 else 0
+            })
 
 
     # for slot_number in range(1, 13):
@@ -3324,8 +3500,6 @@ def check_slot_availability(request):
         "status": "ok",
         "slots": response_slots
     })
-
-
 
 
 
