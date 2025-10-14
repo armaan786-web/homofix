@@ -3387,18 +3387,19 @@ def check_slot_availability(request):
     # Check for a slot with null slot value for this date and subcategories
     # This means all slots for this date should be unavailable
     null_slot_exists = False
-    if zipcode:
-        null_slots = Slot.objects.filter(
-            date=date_obj,
-            slot=None,
-            subcategories__in=subcategories
-        ).distinct()
-        
-        for null_slot in null_slots:
-            if not zipcode or (null_slot.pincode.exists() and null_slot.pincode.filter(code=int(zipcode)).exists()):
-                if null_slot.limit == 0:
-                    null_slot_exists = True
-                    break
+    null_slots = Slot.objects.filter(
+        date=date_obj,
+        slot=None,
+        subcategories__in=subcategories
+    ).distinct()
+    
+    for null_slot in null_slots:
+        # Check if zipcode matches or if no pincode restriction exists
+        if (zipcode and null_slot.pincode.exists() and null_slot.pincode.filter(code=int(zipcode)).exists()) or \
+           (not zipcode and not null_slot.pincode.exists()):
+            if null_slot.limit == 0:
+                null_slot_exists = True
+                break
     
     # If a null slot with limit=0 exists, all slots are unavailable
     if null_slot_exists:
@@ -3422,6 +3423,8 @@ def check_slot_availability(request):
         # Default values
         limit = universal_limit
         matching_slot = None
+        # Flag to track if we've already added this slot to the response
+        slot_added = False
         
         # Only check for specific slot configurations if zipcode is provided
         if zipcode:
@@ -3441,21 +3444,40 @@ def check_slot_availability(request):
             if matching_slot and matching_slot.limit is not None:
                 limit = matching_slot.limit
         
-        # If no zipcode provided, all slots are available with universal limit
-        # unless there's a specific configuration for this slot without pincode restriction
+        # If no zipcode provided, check if there's a slot configuration for this specific slot
         if not zipcode:
-            # Check if there's a slot configuration without pincode restriction
-            general_slots = Slot.objects.filter(
+            # Check if there's a slot configuration without pincode restriction for this specific slot
+            specific_slots = Slot.objects.filter(
                 date=date_obj,
                 slot=slot_number,
                 subcategories__in=subcategories
             ).distinct()
             
-            if general_slots.exists():
-                for slot_obj in general_slots:
+            if specific_slots.exists():
+                # If a specific slot configuration exists, use its limit
+                for slot_obj in specific_slots:
                     if not slot_obj.pincode.exists() and slot_obj.limit is not None:
-                        limit = slot_obj.limit
-                        break
+                        if slot_obj.limit == 0:
+                            # If limit is 0, slot is unavailable
+                            response_slots.append({
+                                "slot": slot_number,
+                                "time": SLOT_CHOICES_DICT.get(slot_number, f"Slot {slot_number}"),
+                                "status": "unavailable",
+                                "limit": 0,
+                                "current_bookings": 0,
+                                "remaining_slots": 0
+                            })
+                            # Mark this slot as added and skip further processing
+                            slot_added = True
+                            break
+                        else:
+                            # Use the specific slot's limit
+                            limit = slot_obj.limit
+                            break
+
+        # Skip the rest of the processing if we've already added this slot
+        if slot_added:
+            continue
 
         # Calculate current assigned bookings
         aware_start_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.min))
