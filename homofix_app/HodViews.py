@@ -4389,7 +4389,8 @@ def get_pincodes_by_state(request):
 
     
 def add_slot(request):
-    slot_choices = SLOT_CHOICES
+    # Add None option to slot choices for blocking all slots
+    slot_choices = [(None, "All Slots (Block All)")] + list(SLOT_CHOICES)
     unique_states = Pincode.objects.values_list('state', flat=True).distinct()
     subcategory = SubCategory.objects.all()
     if request.method == "POST":
@@ -4400,27 +4401,33 @@ def add_slot(request):
         subcategry = request.POST.getlist('subcategory')
         limit = request.POST.get('limit')
 
+        # Convert slot to integer or None
+        if slot == 'None' or slot == '' or slot is None:
+            slot_value = None
+        else:
+            slot_value = int(slot)
 
-
-        slot = Slot.objects.create(date=date,slot=slot,limit=limit)
-        slot.pincode.set(pincode)
-        slot.subcategories.set(subcategry)
-        slot.save()
-        messages.success(request,'Slot Added successfully')
+        # Create slot with None value if "All Slots" option was selected
+        slot_obj = Slot.objects.create(date=date, slot=slot_value, limit=limit)
+        slot_obj.pincode.set(pincode)
+        slot_obj.subcategories.set(subcategry)
+        slot_obj.save()
+        messages.success(request, 'Slot Added successfully')
         return redirect('slot')
    
     context = {
-        'slot_choices':slot_choices,
+        'slot_choices': slot_choices,
         'unique_states': unique_states,
         'subcategory': subcategory,
     }
-    return render(request,'homofix_app/AdminDashboard/Slot/add_slot.html',context)
+    return render(request, 'homofix_app/AdminDashboard/Slot/add_slot.html', context)
 
 
 
 def edit_slot(request, id):
     slot = Slot.objects.get(id=id)
-    slot_choices = SLOT_CHOICES
+    # Add None option to slot choices for blocking all slots
+    slot_choices = [(None, "All Slots (Block All)")] + list(SLOT_CHOICES)
     unique_states = Pincode.objects.values_list('state', flat=True).distinct()
     subcategory = SubCategory.objects.all()
 
@@ -4430,24 +4437,32 @@ def edit_slot(request, id):
 
     if request.method == "POST":
         date = request.POST.get('date')
-        selected_time  = request.POST.get('slot')
+        selected_time = request.POST.get('slot')
         pincode = request.POST.getlist('pincode')
         subcategry = request.POST.getlist('subcategory')
         limit = request.POST.get('limit')
-
-
+        
+        # Convert slot to integer or None
+        if selected_time == 'None' or selected_time == '' or selected_time is None:
+            slot_value = None
+        else:
+            slot_value = int(selected_time)
 
         slot.date = date
-        slot.slot = selected_time
-        slot.pincode.set(pincode)
+        slot.slot = slot_value
+        
+        # Only set pincodes if they are selected, otherwise clear them
+        if pincode:
+            slot.pincode.set(pincode)
+        else:
+            slot.pincode.clear()  # Allow empty/null pincode selection
+            
         slot.subcategories.set(subcategry)
         slot.limit = limit
         slot.save()
         messages.success(request, "Slot updated successfully.")
         return redirect('slot')
    
-
-
     context = {
         'slot': slot,
         'slot_choices': slot_choices,
@@ -4456,6 +4471,7 @@ def edit_slot(request, id):
         'state_pincodes': state_pincodes,           # ✨ for initial rendering
         'selected_pincode_ids': slot.pincode.values_list('id', flat=True),  # ✨ to mark selected
         'selected_subcategory_ids': slot.subcategories.values_list('id', flat=True),  # 🔥
+        'allow_empty_pincode': True,  # Flag to indicate empty pincode selection is allowed
     }
 
     return render(request, "homofix_app/AdminDashboard/Slot/edit_slot.html", context)

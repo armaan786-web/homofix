@@ -3347,10 +3347,10 @@ def check_slot_availability(request):
     date_str = data.get("date")
     subcategory_ids = data.get("subcategory_ids", [])
 
-    if not zipcode or not date_str or not subcategory_ids:
+    if not date_str or not subcategory_ids:
         return Response({
             "status": "error",
-            "message": "zipcode, date, and subcategory_ids are required fields."
+            "message": "date and subcategory_ids are required fields."
         })
 
     # Parse subcategory_ids
@@ -3384,42 +3384,95 @@ def check_slot_availability(request):
 
     response_slots = []
 
-    for slot_number in range(1, 13):
-        slots = Slot.objects.filter(
-            # date=date_obj,  # Uncomment if needed
-            slot=slot_number,
+    # Check for a slot with null slot value for this date and subcategories
+    # This means all slots for this date should be unavailable
+    null_slot_exists = False
+    if zipcode:
+        null_slots = Slot.objects.filter(
+            date=date_obj,
+            slot=None,
             subcategories__in=subcategories
         ).distinct()
-
-        matching_slot = None
-        if slots.exists():
-            for slot_obj in slots:
-                if slot_obj.pincode.filter(code=int(zipcode)).exists():
-                    matching_slot = slot_obj
+        
+        for null_slot in null_slots:
+            if not zipcode or (null_slot.pincode.exists() and null_slot.pincode.filter(code=int(zipcode)).exists()):
+                if null_slot.limit == 0:
+                    null_slot_exists = True
                     break
+    
+    # If a null slot with limit=0 exists, all slots are unavailable
+    if null_slot_exists:
+        for slot_number in range(1, 13):
+            response_slots.append({
+                "slot": slot_number,
+                "time": SLOT_CHOICES_DICT.get(slot_number, f"Slot {slot_number}"),
+                "status": "unavailable",
+                "limit": 0,
+                "current_bookings": 0,
+                "remaining_slots": 0
+            })
+        
+        return Response({
+            "status": "ok",
+            "slots": response_slots
+        })
 
-        # ✅ Determine limit
-        if matching_slot and matching_slot.limit is not None:
-            limit = matching_slot.limit
-            # अगर स्पेसिफिक स्लॉट का लिमिट 0 है, तो इसे अनउपलब्ध मानें
-            if limit == 0:
-                limit = 0  # 0 लिमिट का मतलब है कि स्लॉट अनउपलब्ध है
-        else:
-            limit = universal_limit
+    # Process each slot normally if no null slot exists
+    for slot_number in range(1, 13):
+        # Default values
+        limit = universal_limit
+        matching_slot = None
+        
+        # Only check for specific slot configurations if zipcode is provided
+        if zipcode:
+            slots = Slot.objects.filter(
+                date=date_obj,
+                slot=slot_number,
+                subcategories__in=subcategories
+            ).distinct()
+
+            if slots.exists():
+                for slot_obj in slots:
+                    if slot_obj.pincode.filter(code=int(zipcode)).exists():
+                        matching_slot = slot_obj
+                        break
+
+            # Determine limit based on matching slot
+            if matching_slot and matching_slot.limit is not None:
+                limit = matching_slot.limit
+        
+        # If no zipcode provided, all slots are available with universal limit
+        # unless there's a specific configuration for this slot without pincode restriction
+        if not zipcode:
+            # Check if there's a slot configuration without pincode restriction
+            general_slots = Slot.objects.filter(
+                date=date_obj,
+                slot=slot_number,
+                subcategories__in=subcategories
+            ).distinct()
+            
+            if general_slots.exists():
+                for slot_obj in general_slots:
+                    if not slot_obj.pincode.exists() and slot_obj.limit is not None:
+                        limit = slot_obj.limit
+                        break
 
         # Calculate current assigned bookings
         aware_start_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.min))
         aware_end_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.max))
-        current_count = Booking.objects.filter(
-            booking_date__range=(aware_start_dt, aware_end_dt),
-            slot=slot_number,
-            zipcode=zipcode,
-            # status='Assign'
-        ).count()
-
+        
+        booking_filter = {
+            'booking_date__range': (aware_start_dt, aware_end_dt),
+            'slot': slot_number,
+        }
+        
+        if zipcode:
+            booking_filter['zipcode'] = zipcode
+            
+        current_count = Booking.objects.filter(**booking_filter).count()
         remaining = limit - current_count
 
-        # अगर लिमिट 0 है तो स्लॉट को हमेशा अनउपलब्ध दिखाएं
+        # If limit is 0, slot is unavailable
         if limit == 0:
             response_slots.append({
                 "slot": slot_number,
@@ -3438,63 +3491,6 @@ def check_slot_availability(request):
                 "current_bookings": current_count,
                 "remaining_slots": remaining if remaining > 0 else 0
             })
-
-
-    # for slot_number in range(1, 13):
-    #     print("okkkkkkkkkkkkkkkkkkkkkkk")
-    #     # Find matching slots
-    #     slots = Slot.objects.filter(
-    #         # date=date_obj,
-    #         slot=slot_number,
-    #         subcategories__in=subcategories
-    #     ).distinct()
-    #     print("gggggggggoooooooooooooooooooooooo",slots)
-
-    #     matching_slot = None
-    #     if slots.exists():
-    #         for slot_obj in slots:
-    #             if slot_obj.pincode.filter(code=int(zipcode)).exists():
-    #                 matching_slot = slot_obj
-    #                 break
-
-    #     # ✅ Determine limit
-    #     if matching_slot and matching_slot.limit is not None:
-    #         # Use specific slot limit if available
-    #         limit = matching_slot.limit
-    #         print(f"✅ Slot {slot_number} → Using Slot limit: {limit}")
-    #     else:
-    #         # Fall back to universal limit
-    #         limit = universal_limit
-    #         print(f"⚠ Slot {slot_number} → No specific slot found. Using Universal limit: {limit}")
-
-    #     if limit == 0:
-    #         # Skip if limit is 0
-    #         continue
-
-    #     # Calculate current assigned bookings in this slot
-    #     aware_start_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.min))
-    #     aware_end_dt = timezone.make_aware(datetime.combine(date_obj, dt_time.max))
-    #     current_count = Booking.objects.filter(
-    #         booking_date__range=(aware_start_dt, aware_end_dt),
-    #         slot=slot_number,
-    #         zipcode=zipcode,
-    #         # status='Assign'
-    #     ).count()
-
-    #     remaining = limit - current_count
-    #     if remaining > 0:
-    #         response_slots.append({
-    #             "slot": slot_number,
-    #             "time": SLOT_CHOICES_DICT.get(slot_number, f"Slot {slot_number}"),
-    #             "status": "available",
-    #             "limit": limit,
-    #             "current_bookings": current_count,
-    #             "remaining_slots": remaining
-    #         })
-    #     else:
-    #         print(f"❌ Slot {slot_number} → Limit reached. Skipping.")
-
-
 
     return Response({
         "status": "ok",
